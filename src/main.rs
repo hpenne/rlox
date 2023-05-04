@@ -1,6 +1,10 @@
+mod token_type;
+mod token;
+
 use std::{env, io};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use crate::token::Token;
 
 fn main() {
     let args : Vec<String> = env::args().collect();
@@ -35,7 +39,38 @@ fn run_file(file: &str) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn run(line: &str) -> Result<(), Box<dyn std::error::Error>> {
-    println!("{}", line);
+fn run(source: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let mut scanner = Scanner::new(source);
+    for token in scanner.scan_tokens() {
+        println!("{}", token);
+    }
     Ok(())
+}
+
+struct Scanner;
+
+impl Scanner {
+    fn new(_source: &str) -> Self {
+        Self
+    }
+
+    fn scan_tokens(&mut self) -> impl Iterator<Item=Token> {
+        Tokenizer::new()
+    }
+}
+
+struct Tokenizer;
+
+impl Iterator for Tokenizer {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
+}
+
+impl Tokenizer {
+    fn new() -> Self {
+        Self
+    }
 }
