@@ -1,76 +1,55 @@
-mod token_type;
+mod error;
+mod scanner;
 mod token;
+mod token_type;
 
-use std::{env, io};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use crate::error::Error;
+use crate::scanner::TokenScanner;
 use crate::token::Token;
+use std::{env, fs, io};
 
 fn main() {
-    let args : Vec<String> = env::args().collect();
-    let _result = match args.len() {
-        1 =>run_prompt(),
+    let args: Vec<String> = env::args().collect();
+    match args.len() {
+        1 => run_prompt(),
         2 => run_file(&args[1]),
         _ => {
             print_help();
-            Ok(())
-        },
+        }
     };
 }
 
-fn print_help(){
+fn print_help() {
     println!("Usage: rlox <script>")
 }
 
-fn run_prompt()  -> Result<(), Box<dyn std::error::Error>>{
+fn run_prompt() {
     for line in io::stdin().lines() {
+        let mut error = Error::default();
+        run(&line.as_ref().unwrap(), &mut error);
         println!("{}", line.unwrap());
     }
-    Ok(())
 }
 
-fn run_file(file: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn run_file(file: &str) {
     println!("File: {}", file);
-    let file = File::open(file)?;
-    let reader = BufReader::new(file);
-    for line in reader.lines() {
-        run(&line?)?;
+    match fs::read_to_string(file) {
+        Ok(source) => {
+            let mut error = Error::default();
+            run(&source, &mut error);
+            if error.has_error() {
+                std::process::exit(65);
+            }
+        }
+        Err(e) => {
+            println!("Failed to read from file: {}", e);
+            std::process::exit(1);
+        }
     }
-    Ok(())
 }
 
-fn run(source: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let mut scanner = Scanner::new(source);
-    for token in scanner.scan_tokens() {
+fn run(source: &str, error: &mut Error) {
+    for token in source.chars().tokens(error) {
         println!("{}", token);
-    }
-    Ok(())
-}
-
-struct Scanner;
-
-impl Scanner {
-    fn new(_source: &str) -> Self {
-        Self
-    }
-
-    fn scan_tokens(&mut self) -> impl Iterator<Item=Token> {
-        Tokenizer::new()
-    }
-}
-
-struct Tokenizer;
-
-impl Iterator for Tokenizer {
-    type Item = Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        None
-    }
-}
-
-impl Tokenizer {
-    fn new() -> Self {
-        Self
     }
 }
