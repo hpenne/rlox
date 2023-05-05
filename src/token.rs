@@ -12,3 +12,13 @@ impl Display for Token {
         write!(f, "{} {}", self.token_type.to_string(), self.lexeme)
     }
 }
+
+impl Token {
+    pub fn new(token_type: TokenType, lexeme: String, line: usize) -> Self {
+        Self {
+            token_type,
+            lexeme,
+            line,
+        }
+    }
+}
