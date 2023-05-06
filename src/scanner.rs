@@ -49,8 +49,99 @@ where
         false
     }
 
+    fn peek(&mut self) -> char {
+        let current = self.source.clone();
+        if let Some(next) = self.source.next() {
+            self.source = current;
+            return next;
+        }
+        return '\0';
+    }
+
     fn token(&self, token_type: TokenType) -> Token {
         Token::new(token_type, "".to_string(), self.line)
+    }
+
+    fn token_with_lexeme(&self, token_type: TokenType, lexeme: String) -> Token {
+        Token::new(token_type, lexeme, self.line)
+    }
+
+    fn consume_line(&mut self) {
+        loop {
+            match self.source.next() {
+                Some(c) => match c {
+                    '\n' => {
+                        self.line += 1;
+                        break;
+                    }
+                    _ => {}
+                },
+                None => break,
+            }
+        }
+    }
+
+    fn string_literal(&mut self) -> Option<String> {
+        let mut literal = String::default();
+        loop {
+            match self.source.next() {
+                Some(c) => match c {
+                    '\n' => {
+                        self.line += 1;
+                    }
+                    '"' => return Some(literal),
+                    _ => {
+                        literal.push(c);
+                    }
+                },
+                None => {
+                    self.error.error(self.line, "Unterminated string");
+                    return None;
+                }
+            }
+        }
+    }
+
+    fn number(&mut self, c: char) -> Option<String> {
+        let mut number: String = c.into();
+        loop {
+            let previous = self.source.clone();
+            match self.source.next() {
+                Some(c) if c.is_numeric() => number.push(c),
+                Some('.') if self.peek().is_numeric() => number.push(c),
+                Some(_) => {
+                    self.source = previous;
+                    return Some(number);
+                }
+                None => {
+                    return Some(number);
+                }
+            }
+        }
+    }
+
+    fn identifier(&mut self, c: char) -> Option<String> {
+        let mut identifier: String = c.into();
+        loop {
+            let previous = self.source.clone();
+            match self.source.next() {
+                Some(c) if is_identifier_char(c) => identifier.push(c),
+                Some(_) => {
+                    self.source = previous;
+                    return Some(identifier);
+                }
+                None => {
+                    return Some(identifier);
+                }
+            }
+        }
+    }
+
+    fn reserved_word_token(&self, identifier: &str) -> Option<Token> {
+        if let Some(token_type) = reserverd_word_token_type(identifier) {
+            return Some(self.token(token_type));
+        }
+        None
     }
 }
 
@@ -105,9 +196,82 @@ where
                     }
                 }
 
+                // Slash and comments
+                Some('/') => {
+                    if self.match_next('/') {
+                        self.consume_line();
+                    } else {
+                        return Some(self.token(TokenType::Slash));
+                    }
+                }
+
+                // Whitespace etc:
+                Some(' ') | Some('\r') | Some('\t') => {}
+                Some('\n') => {
+                    self.line += 1;
+                }
+
+                // Strings
+                Some('"') => {
+                    if let Some(s) = self.string_literal() {
+                        return Some(self.token_with_lexeme(TokenType::String, s));
+                    }
+                }
+
+                // Numbers
+                Some(c) if c.is_numeric() => {
+                    if let Some(number) = self.number(c) {
+                        return Some(self.token_with_lexeme(TokenType::Number, number));
+                    }
+                }
+
+                Some(c) if is_identifier_char(c) => {
+                    if let Some(identifier) = self.identifier(c) {
+                        if let Some(token) = self.reserved_word_token(&identifier) {
+                            return Some(token);
+                        }
+                        return Some(self.token_with_lexeme(TokenType::Identifier, identifier));
+                    }
+                }
+
+                // Identifiers and reserved words
                 None => return None,
                 _ => self.error.error(self.line, "Unexpected character"),
             }
         }
+    }
+}
+
+fn is_letter(c: char) -> bool {
+    match c {
+        'a'..='z' => true,
+        'A'..='Z' => true,
+        _ => false,
+    }
+}
+
+fn is_identifier_char(c: char) -> bool {
+    c.is_numeric() || is_letter(c)
+}
+
+fn reserverd_word_token_type(identifier: &str) -> Option<TokenType> {
+    match identifier {
+        "and" => Some(TokenType::And),
+        "class" => Some(TokenType::Class),
+        "else" => Some(TokenType::Else),
+        "false" => Some(TokenType::False),
+        "for" => Some(TokenType::For),
+        "fun" => Some(TokenType::Fun),
+        "if" => Some(TokenType::If),
+        "nil" => Some(TokenType::Nil),
+        "or" => Some(TokenType::Or),
+        "print" => Some(TokenType::Print),
+        "return" => Some(TokenType::Return),
+        "super" => Some(TokenType::Super),
+        "this" => Some(TokenType::This),
+        "true" => Some(TokenType::True),
+        "while" => Some(TokenType::While),
+        "var" => Some(TokenType::Var),
+        _ => None,
     }
 }
