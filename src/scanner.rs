@@ -1,18 +1,18 @@
 use crate::token_type::TokenType;
-use crate::{Error, Token};
+use crate::{ErrorReporter, Token};
 
 pub trait TokenScanner<'a, I>
 where
     I: Iterator<Item = char> + Clone,
 {
-    fn tokens(self, error: &'a mut Error) -> Scanner<'a, I>;
+    fn tokens(self, error: &'a mut ErrorReporter) -> Scanner<'a, I>;
 }
 
 impl<'a, I> TokenScanner<'a, I> for I
 where
     I: Iterator<Item = char> + Clone,
 {
-    fn tokens(self, error: &'a mut Error) -> Scanner<'a, I> {
+    fn tokens(self, error: &'a mut ErrorReporter) -> Scanner<'a, I> {
         Scanner::new(self, error)
     }
 }
@@ -22,7 +22,7 @@ where
     I: Iterator<Item = char> + Clone,
 {
     source: I,
-    error: &'a mut Error,
+    error_reporter: &'a mut ErrorReporter,
     line: usize,
 }
 
@@ -30,10 +30,10 @@ impl<'a, I> Scanner<'a, I>
 where
     I: Iterator<Item = char> + Clone,
 {
-    pub fn new(source: I, error: &'a mut Error) -> Self {
+    pub fn new(source: I, error: &'a mut ErrorReporter) -> Self {
         Self {
             source,
-            error,
+            error_reporter: error,
             line: 1,
         }
     }
@@ -95,7 +95,7 @@ where
                     }
                 },
                 None => {
-                    self.error.error(self.line, "Unterminated string");
+                    self.error_reporter.error(self.line, "Unterminated string");
                     return None;
                 }
             }
@@ -236,7 +236,7 @@ where
 
                 // Identifiers and reserved words
                 None => return None,
-                _ => self.error.error(self.line, "Unexpected character"),
+                _ => self.error_reporter.error(self.line, "Unexpected character"),
             }
         }
     }

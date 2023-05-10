@@ -1,14 +1,14 @@
-pub struct Error {
+pub struct ErrorReporter {
     has_error: bool,
 }
 
-impl Default for Error {
+impl Default for ErrorReporter {
     fn default() -> Self {
         Self { has_error: false }
     }
 }
 
-impl Error {
+impl ErrorReporter {
     pub fn error(&mut self, line: usize, message: &str) {
         self.report(line, "", message);
     }
@@ -20,9 +20,5 @@ impl Error {
 
     pub fn has_error(&self) -> bool {
         self.has_error
-    }
-
-    pub fn reset_error(&mut self) {
-        self.has_error = false;
     }
 }

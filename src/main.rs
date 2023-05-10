@@ -1,9 +1,11 @@
-mod error;
+mod error_reporter;
+mod expr;
+mod parser;
 mod scanner;
 mod token;
 mod token_type;
 
-use crate::error::Error;
+use crate::error_reporter::ErrorReporter;
 use crate::scanner::TokenScanner;
 use crate::token::Token;
 use std::{env, fs, io};
@@ -25,7 +27,7 @@ fn print_help() {
 
 fn run_prompt() {
     for line in io::stdin().lines() {
-        let mut error = Error::default();
+        let mut error = ErrorReporter::default();
         run(&line.as_ref().unwrap(), &mut error);
         println!("{}", line.unwrap());
     }
@@ -35,7 +37,7 @@ fn run_file(file: &str) {
     println!("File: {}", file);
     match fs::read_to_string(file) {
         Ok(source) => {
-            let mut error = Error::default();
+            let mut error = ErrorReporter::default();
             run(&source, &mut error);
             if error.has_error() {
                 std::process::exit(65);
@@ -48,7 +50,7 @@ fn run_file(file: &str) {
     }
 }
 
-fn run(source: &str, error: &mut Error) {
+fn run(source: &str, error: &mut ErrorReporter) {
     for token in source.chars().tokens(error) {
         println!("{}", token);
     }
