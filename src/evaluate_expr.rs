@@ -48,6 +48,20 @@ impl EvaluateExpr for Expr {
                     TokenType::Star => Ok(LiteralValue::Number(
                         f64::try_from(left)? * f64::try_from(right)?,
                     )),
+                    TokenType::Greater => Ok(LiteralValue::Bool(
+                        bool::try_from(left)? > bool::try_from(right)?,
+                    )),
+                    TokenType::GreaterEqual => Ok(LiteralValue::Bool(
+                        bool::try_from(left)? >= bool::try_from(right)?,
+                    )),
+                    TokenType::Less => Ok(LiteralValue::Bool(
+                        bool::try_from(left)? < bool::try_from(right)?,
+                    )),
+                    TokenType::LessEqual => Ok(LiteralValue::Bool(
+                        bool::try_from(left)? <= bool::try_from(right)?,
+                    )),
+                    TokenType::EqualEqual => Ok(LiteralValue::Bool(is_equal(left, right))),
+                    TokenType::BangEqual => Ok(LiteralValue::Bool(!is_equal(left, right))),
                     _ => {
                         panic!(
                             "Missing implementatoin for operator {}",
@@ -76,4 +90,11 @@ impl EvaluateExpr for Expr {
             },
         }
     }
+}
+
+fn is_equal(left: LiteralValue, right: LiteralValue) -> bool {
+    if matches!(left, LiteralValue::Nil) {
+        return matches!(right, LiteralValue::Nil);
+    }
+    left == right
 }
