@@ -1,3 +1,4 @@
+use crate::error_reporter;
 use crate::token::Token;
 use std::fmt::{Display, Formatter};
 
@@ -19,6 +20,7 @@ pub enum Expr {
     },
 }
 
+#[derive(Clone)]
 pub enum LiteralValue {
     Bool(bool),
     String(String),
@@ -48,6 +50,33 @@ impl Display for LiteralValue {
             LiteralValue::String(value) => write!(f, "\"{}\"", value),
             LiteralValue::Number(value) => write!(f, "{}", value),
             LiteralValue::Nil => write!(f, "nil"),
+        }
+    }
+}
+
+impl TryFrom<LiteralValue> for f64 {
+    type Error = error_reporter::Error;
+
+    fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
+        if let LiteralValue::Number(number) = value {
+            return Ok(number);
+        }
+        Err(error_reporter::Error {
+            token: None,
+            message: format!("{} is not a number", value),
+        })
+    }
+}
+
+impl TryFrom<LiteralValue> for bool {
+    type Error = error_reporter::Error;
+
+    fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
+        match value {
+            LiteralValue::Bool(value) => Ok(value),
+            LiteralValue::String(_) => Ok(true),
+            LiteralValue::Number(_) => Ok(true),
+            LiteralValue::Nil => Ok(false),
         }
     }
 }

@@ -1,17 +1,10 @@
-use crate::error_reporter::ErrorReporter;
+use crate::error_reporter;
+use crate::error_reporter::{Error, ErrorReporter};
 use crate::expr::{Expr, LiteralValue};
 use crate::token::Token;
 use crate::token_type::TokenType;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::result;
-
-pub type Result<T> = result::Result<T, Error>;
-
-pub struct Error {
-    pub token: Option<Token>,
-    pub message: String,
-}
 
 pub struct Parser<I>
 where
@@ -36,11 +29,11 @@ where
         self.expression().ok()
     }
 
-    fn expression(&mut self) -> Result<Expr> {
+    fn expression(&mut self) -> error_reporter::Result<Expr> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Result<Expr> {
+    fn equality(&mut self) -> error_reporter::Result<Expr> {
         let mut expr = self.comparison()?;
         while let Some(token_type) = self.peek_token_type() {
             match token_type {
@@ -57,7 +50,7 @@ where
         Ok(expr)
     }
 
-    fn comparison(&mut self) -> Result<Expr> {
+    fn comparison(&mut self) -> error_reporter::Result<Expr> {
         let mut expr = self.term()?;
         while let Some(token_type) = self.peek_token_type() {
             use TokenType::*;
@@ -75,7 +68,7 @@ where
         Ok(expr)
     }
 
-    fn term(&mut self) -> Result<Expr> {
+    fn term(&mut self) -> error_reporter::Result<Expr> {
         let mut expr = self.factor()?;
         while let Some(token_type) = self.peek_token_type() {
             match token_type {
@@ -92,7 +85,7 @@ where
         Ok(expr)
     }
 
-    fn factor(&mut self) -> Result<Expr> {
+    fn factor(&mut self) -> error_reporter::Result<Expr> {
         let mut expr = self.unary()?;
         while let Some(token_type) = self.peek_token_type() {
             match token_type {
@@ -109,7 +102,7 @@ where
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expr> {
+    fn unary(&mut self) -> error_reporter::Result<Expr> {
         if let Some(token_type) = self.peek_token_type() {
             match token_type {
                 TokenType::Bang | TokenType::Minus => {
@@ -124,7 +117,7 @@ where
         return self.primary();
     }
 
-    fn primary(&mut self) -> Result<Expr> {
+    fn primary(&mut self) -> error_reporter::Result<Expr> {
         let current = self.tokens.clone();
         match self.tokens.next() {
             Some(Token {

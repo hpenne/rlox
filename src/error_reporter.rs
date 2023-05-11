@@ -1,4 +1,5 @@
 use crate::token::Token;
+use std::result;
 
 #[derive(Clone)]
 pub struct ErrorReporter {
@@ -37,3 +38,11 @@ impl ErrorReporter {
         self.has_error
     }
 }
+
+#[derive(Debug)]
+pub struct Error {
+    pub token: Option<Token>,
+    pub message: String,
+}
+
+pub type Result<T> = result::Result<T, Error>;

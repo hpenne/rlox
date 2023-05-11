@@ -1,4 +1,5 @@
 mod error_reporter;
+mod evaluate_expr;
 mod expr;
 mod parser;
 mod scanner;
@@ -6,6 +7,7 @@ mod token;
 mod token_type;
 
 use crate::error_reporter::ErrorReporter;
+use crate::evaluate_expr::EvaluateExpr;
 use crate::parser::Parser;
 use crate::scanner::TokenScanner;
 use crate::token::Token;
@@ -56,6 +58,7 @@ fn run_file(file: &str) {
 fn run(source: &str, error: Rc<RefCell<ErrorReporter>>) {
     let mut parser = Parser::new(source.chars().tokens(error.clone()), error);
     if let Some(expr) = parser.parse() {
-        println!("{}", expr);
+        let result = expr.evaluate().unwrap();
+        println!("{} = {}", expr, result);
     }
 }

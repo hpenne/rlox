@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     // Single-character tokens:
     LeftParen,
@@ -47,8 +47,6 @@ pub enum TokenType {
     True,
     Var,
     While,
-
-    Eof,
 }
 
 impl Display for TokenType {
@@ -92,7 +90,6 @@ impl Display for TokenType {
             Self::True => write!(f, "True"),
             Self::Var => write!(f, "Var"),
             Self::While => write!(f, "While"),
-            Self::Eof => write!(f, "Eof"),
         }
     }
 }
