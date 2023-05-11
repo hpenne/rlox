@@ -45,7 +45,7 @@ impl Display for LiteralValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             LiteralValue::Bool(value) => write!(f, "{}", value),
-            LiteralValue::String(value) => write!(f, "{}", value),
+            LiteralValue::String(value) => write!(f, "\"{}\"", value),
             LiteralValue::Number(value) => write!(f, "{}", value),
             LiteralValue::Nil => write!(f, "nil"),
         }

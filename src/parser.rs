@@ -173,9 +173,13 @@ where
                     Err(self.error(token, "Expect ')' after expression."))
                 }
             }
-            _ => {
+            None => {
                 self.tokens = current;
                 Err(self.error(None, "Unexpected end of file"))
+            }
+            _ => {
+                self.tokens = current;
+                Err(self.error(None, "Expected expression"))
             }
         }
     }
