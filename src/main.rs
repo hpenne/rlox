@@ -87,4 +87,12 @@ mod test {
     fn evaluate_float_expr() {
         assert_eq!(LiteralValue::Number(17.0), evaluate_string("3*(6+4)/2+2"));
     }
+
+    #[test]
+    fn evaluate_string_expr() {
+        assert_eq!(
+            LiteralValue::String("Hello World!".into()),
+            evaluate_string("\"Hello \"+\"World!\"")
+        );
+    }
 }

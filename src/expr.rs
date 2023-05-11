@@ -68,6 +68,20 @@ impl TryFrom<LiteralValue> for f64 {
     }
 }
 
+impl TryFrom<LiteralValue> for String {
+    type Error = error_reporter::Error;
+
+    fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
+        if let LiteralValue::String(string) = value {
+            return Ok(string);
+        }
+        Err(error_reporter::Error {
+            token: None,
+            message: format!("{} is not a string", value),
+        })
+    }
+}
+
 impl TryFrom<LiteralValue> for bool {
     type Error = error_reporter::Error;
 

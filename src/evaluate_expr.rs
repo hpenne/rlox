@@ -13,41 +13,49 @@ impl EvaluateExpr for Expr {
                 left,
                 operator,
                 right,
-            } => match operator.token_type {
-                TokenType::Minus => {
-                    let left: f64 = left.evaluate()?.try_into()?;
-                    let right: f64 = right.evaluate()?.try_into()?;
-                    Ok(LiteralValue::Number(left - right))
-                }
-                TokenType::Plus => {
-                    let left: f64 = left.evaluate()?.try_into()?;
-                    let right: f64 = right.evaluate()?.try_into()?;
-                    Ok(LiteralValue::Number(left + right))
-                }
-                TokenType::Slash => {
-                    let left: f64 = left.evaluate()?.try_into()?;
-                    let right: f64 = right.evaluate()?.try_into()?;
-                    if right != 0f64 {
-                        Ok(LiteralValue::Number(left / right))
-                    } else {
-                        Err(Error {
+            } => {
+                let left = left.evaluate()?;
+                let right = right.evaluate()?;
+                match operator.token_type {
+                    TokenType::Minus => Ok(LiteralValue::Number(
+                        f64::try_from(left)? - f64::try_from(right)?,
+                    )),
+                    TokenType::Plus => match left {
+                        LiteralValue::Number(left) => {
+                            Ok(LiteralValue::Number(left + f64::try_from(right)?))
+                        }
+                        LiteralValue::String(mut left) => {
+                            let right = String::try_from(right)?; // ToDo: Not optimal
+                            left.push_str(&right);
+                            Ok(LiteralValue::String(left))
+                        }
+                        _ => Err(Error {
                             token: None,
-                            message: "Division by 0".into(),
-                        })
+                            message: "Operands must be two number or two strings".into(),
+                        }),
+                    },
+                    TokenType::Slash => {
+                        let right = f64::try_from(right)?;
+                        if right != 0f64 {
+                            Ok(LiteralValue::Number(f64::try_from(left)? / right))
+                        } else {
+                            Err(Error {
+                                token: Some(operator.clone()),
+                                message: "Division by 0".into(),
+                            })
+                        }
+                    }
+                    TokenType::Star => Ok(LiteralValue::Number(
+                        f64::try_from(left)? * f64::try_from(right)?,
+                    )),
+                    _ => {
+                        panic!(
+                            "Missing implementatoin for operator {}",
+                            operator.token_type
+                        );
                     }
                 }
-                TokenType::Star => {
-                    let left: f64 = left.evaluate()?.try_into()?;
-                    let right: f64 = right.evaluate()?.try_into()?;
-                    Ok(LiteralValue::Number(left * right))
-                }
-                _ => {
-                    panic!(
-                        "Missing implementatoin for operator {}",
-                        operator.token_type
-                    );
-                }
-            },
+            }
             Expr::Grouping { expression } => expression.evaluate(),
             Expr::Literal { value } => Ok(value.clone()),
             Expr::Unary { operator, right } => match operator.token_type {
