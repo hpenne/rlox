@@ -2,27 +2,40 @@ use crate::error_reporter::ErrorReporter;
 use crate::expr::{Expr, LiteralValue};
 use crate::token::Token;
 use crate::token_type::TokenType;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::result;
 
 pub type Result<T> = result::Result<T, Error>;
 
 pub struct Error {
-    token: Option<Token>,
-    message: String,
+    pub token: Option<Token>,
+    pub message: String,
 }
 
-pub struct Parser<'a, I>
+pub struct Parser<I>
 where
     I: Iterator<Item = Token> + Clone,
 {
     tokens: I,
-    error_reporter: &'a mut ErrorReporter,
+    error_reporter: Rc<RefCell<ErrorReporter>>,
 }
 
-impl<'a, I> Parser<'a, I>
+impl<I> Parser<I>
 where
     I: Iterator<Item = Token> + Clone,
 {
+    pub fn new(tokens: I, error: Rc<RefCell<ErrorReporter>>) -> Self {
+        Self {
+            tokens,
+            error_reporter: error,
+        }
+    }
+
+    pub fn parse(&mut self) -> Option<Expr> {
+        self.expression().ok()
+    }
+
     fn expression(&mut self) -> Result<Expr> {
         self.equality()
     }
@@ -150,28 +163,25 @@ where
                 token_type: TokenType::LeftParen,
                 ..
             }) => {
-                let expr = self.expression()?;
+                let expression = self.expression()?;
                 if self.peek_token_type() == Some(TokenType::RightParen) {
-                    Ok(expr)
-                } else {
-                    Err(Error {
-                        token: self.next_token(),
-                        message: "Expect ')' after expression.".to_string(),
+                    Ok(Expr::Grouping {
+                        expression: Box::new(expression),
                     })
+                } else {
+                    let token = self.next_token();
+                    Err(self.error(token, "Expect ')' after expression."))
                 }
             }
             _ => {
                 self.tokens = current;
-                Err(Error {
-                    token: None,
-                    message: "Unexpected end of file".to_string(),
-                })
+                Err(self.error(None, "Unexpected end of file"))
             }
         }
     }
 
     fn next_token(&mut self) -> Option<Token> {
-        self.tokens.clone().next()
+        self.tokens.next()
     }
 
     fn peek_token(&mut self) -> Option<Token> {
@@ -188,5 +198,15 @@ where
             return true;
         }
         false
+    }
+
+    fn error(&mut self, token: Option<Token>, message: &str) -> Error {
+        self.error_reporter
+            .borrow_mut()
+            .error_with_token(token.clone(), &message);
+        Error {
+            token,
+            message: message.into(),
+        }
     }
 }

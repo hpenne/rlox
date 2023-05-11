@@ -1,36 +1,39 @@
 use crate::token_type::TokenType;
 use crate::{ErrorReporter, Token};
+use std::cell::RefCell;
+use std::rc::Rc;
 
-pub trait TokenScanner<'a, I>
+pub trait TokenScanner<I>
 where
     I: Iterator<Item = char> + Clone,
 {
-    fn tokens(self, error: &'a mut ErrorReporter) -> Scanner<'a, I>;
+    fn tokens(self, error: Rc<RefCell<ErrorReporter>>) -> Scanner<I>;
 }
 
-impl<'a, I> TokenScanner<'a, I> for I
+impl<I> TokenScanner<I> for I
 where
     I: Iterator<Item = char> + Clone,
 {
-    fn tokens(self, error: &'a mut ErrorReporter) -> Scanner<'a, I> {
+    fn tokens(self, error: Rc<RefCell<ErrorReporter>>) -> Scanner<I> {
         Scanner::new(self, error)
     }
 }
 
-pub struct Scanner<'a, I>
+#[derive(Clone)]
+pub struct Scanner<I>
 where
     I: Iterator<Item = char> + Clone,
 {
     source: I,
-    error_reporter: &'a mut ErrorReporter,
+    error_reporter: Rc<RefCell<ErrorReporter>>,
     line: usize,
 }
 
-impl<'a, I> Scanner<'a, I>
+impl<I> Scanner<I>
 where
     I: Iterator<Item = char> + Clone,
 {
-    pub fn new(source: I, error: &'a mut ErrorReporter) -> Self {
+    pub fn new(source: I, error: Rc<RefCell<ErrorReporter>>) -> Self {
         Self {
             source,
             error_reporter: error,
@@ -95,7 +98,9 @@ where
                     }
                 },
                 None => {
-                    self.error_reporter.error(self.line, "Unterminated string");
+                    self.error_reporter
+                        .borrow_mut()
+                        .error(self.line, "Unterminated string");
                     return None;
                 }
             }
@@ -145,7 +150,7 @@ where
     }
 }
 
-impl<I> Iterator for Scanner<'_, I>
+impl<I> Iterator for Scanner<I>
 where
     I: Iterator<Item = char> + Clone,
 {
@@ -236,7 +241,10 @@ where
 
                 // Identifiers and reserved words
                 None => return None,
-                _ => self.error_reporter.error(self.line, "Unexpected character"),
+                _ => self
+                    .error_reporter
+                    .borrow_mut()
+                    .error(self.line, "Unexpected character"),
             }
         }
     }
