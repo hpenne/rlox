@@ -157,12 +157,12 @@ where
                 ..
             }) => {
                 let expression = self.expression()?;
-                if self.peek_token_type() == Some(TokenType::RightParen) {
+                let token = self.next_token();
+                if token.as_ref().map(|token| token.token_type) == Some(TokenType::RightParen) {
                     Ok(Expr::Grouping {
                         expression: Box::new(expression),
                     })
                 } else {
-                    let token = self.next_token();
                     Err(self.error(token, "Expect ')' after expression."))
                 }
             }

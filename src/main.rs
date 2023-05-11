@@ -62,3 +62,29 @@ fn run(source: &str, error: Rc<RefCell<ErrorReporter>>) {
         println!("{} = {}", expr, result);
     }
 }
+
+mod test {
+    use crate::error_reporter::ErrorReporter;
+    use crate::evaluate_expr::EvaluateExpr;
+    use crate::expr::LiteralValue;
+    use crate::parser::Parser;
+    use crate::scanner::TokenScanner;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    fn evaluate_string(text: &str) -> LiteralValue {
+        let error_reporter = Rc::new(RefCell::new(ErrorReporter::default()));
+        let mut parser = Parser::new(text.chars().tokens(error_reporter.clone()), error_reporter);
+        parser.parse().unwrap().evaluate().unwrap()
+    }
+
+    #[test]
+    fn evaluate_float_addition() {
+        assert_eq!(LiteralValue::Number(3.0), evaluate_string("1+2"));
+    }
+
+    #[test]
+    fn evaluate_float_expr() {
+        assert_eq!(LiteralValue::Number(17.0), evaluate_string("3*(6+4)/2+2"));
+    }
+}

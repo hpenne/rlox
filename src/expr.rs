@@ -20,7 +20,7 @@ pub enum Expr {
     },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum LiteralValue {
     Bool(bool),
     String(String),
