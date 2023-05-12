@@ -25,13 +25,12 @@ impl EvaluateExpr for Expr {
                             Ok(LiteralValue::Number(left + f64::try_from(right)?))
                         }
                         LiteralValue::String(mut left) => {
-                            let right = String::try_from(right)?; // ToDo: Not optimal
-                            left.push_str(&right);
+                            left.push_str(try_into_str(&right)?);
                             Ok(LiteralValue::String(left))
                         }
                         _ => Err(Error {
                             token: None,
-                            message: "Operands must be two number or two strings".into(),
+                            message: "Operands must be two numbers or two strings".into(),
                         }),
                     },
                     TokenType::Slash => {
@@ -64,7 +63,7 @@ impl EvaluateExpr for Expr {
                     TokenType::BangEqual => Ok(LiteralValue::Bool(!is_equal(left, right))),
                     _ => {
                         panic!(
-                            "Missing implementatoin for operator {}",
+                            "Missing implementation for operator {}",
                             operator.token_type
                         );
                     }
@@ -83,7 +82,7 @@ impl EvaluateExpr for Expr {
                 }
                 _ => {
                     panic!(
-                        "Missing implementatoin for operator {}",
+                        "Missing implementation for operator {}",
                         operator.token_type
                     );
                 }
@@ -97,4 +96,14 @@ fn is_equal(left: LiteralValue, right: LiteralValue) -> bool {
         return matches!(right, LiteralValue::Nil);
     }
     left == right
+}
+
+fn try_into_str(value: &LiteralValue) -> Result<&str> {
+    if let LiteralValue::String(string) = value {
+        return Ok(string.as_ref());
+    }
+    Err(Error {
+        token: None,
+        message: format!("{} is not a string", value),
+    })
 }

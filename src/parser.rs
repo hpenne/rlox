@@ -189,14 +189,6 @@ where
         self.peek_token().map(|token| token.token_type)
     }
 
-    fn match_token(&mut self, token_type: TokenType) -> bool {
-        if self.peek_token_type() == Some(token_type) {
-            self.next_token();
-            return true;
-        }
-        false
-    }
-
     fn error(&mut self, token: Option<Token>, message: &str) -> Error {
         self.error_reporter
             .borrow_mut()
