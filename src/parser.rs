@@ -12,6 +12,7 @@ where
 {
     tokens: I,
     error_reporter: Rc<RefCell<ErrorReporter>>,
+    peeked: Option<Token>,
 }
 
 impl<I> Parser<I>
@@ -22,6 +23,7 @@ where
         Self {
             tokens,
             error_reporter: error,
+            peeked: None,
         }
     }
 
@@ -119,7 +121,7 @@ where
 
     fn primary(&mut self) -> error_reporter::Result<Expr> {
         let current = self.tokens.clone();
-        match self.tokens.next() {
+        match self.next_token() {
             Some(Token {
                 token_type: TokenType::False,
                 ..
@@ -178,11 +180,18 @@ where
     }
 
     fn next_token(&mut self) -> Option<Token> {
-        self.tokens.next()
+        if self.peeked.is_some() {
+            self.peeked.take()
+        } else {
+            self.tokens.next()
+        }
     }
 
     fn peek_token(&mut self) -> Option<Token> {
-        self.tokens.clone().next()
+        if self.peeked.is_none() {
+            self.peeked = self.tokens.next();
+        }
+        self.peeked.clone()
     }
 
     fn peek_token_type(&mut self) -> Option<TokenType> {
