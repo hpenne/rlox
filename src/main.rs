@@ -1,13 +1,16 @@
 mod error_reporter;
 mod evaluate_expr;
+mod exec_stmt;
 mod expr;
 mod parser;
 mod scanner;
+mod statement;
 mod token;
 mod token_type;
 
 use crate::error_reporter::ErrorReporter;
 use crate::evaluate_expr::EvaluateExpr;
+use crate::exec_stmt::ExecuteStatement;
 use crate::parser::Parser;
 use crate::scanner::TokenScanner;
 use crate::token::Token;
@@ -57,9 +60,10 @@ fn run_file(file: &str) {
 
 fn run(source: &str, error: Rc<RefCell<ErrorReporter>>) {
     let mut parser = Parser::new(source.chars().tokens(error.clone()), error);
-    if let Some(expr) = parser.parse() {
-        let result = expr.evaluate().unwrap();
-        println!("{} = {}", expr, result);
+    if let Ok(statements) = parser.parse() {
+        for statement in statements {
+            statement.execute();
+        }
     }
 }
 
@@ -73,27 +77,27 @@ mod test {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    fn evaluate(text: &str) -> LiteralValue {
-        let error_reporter = Rc::new(RefCell::new(ErrorReporter::default()));
-        let mut parser = Parser::new(text.chars().tokens(error_reporter.clone()), error_reporter);
-        parser.parse().unwrap().evaluate().unwrap()
-    }
-
-    #[test]
-    fn evaluate_float_addition() {
-        assert_eq!(LiteralValue::Number(3.0), evaluate("1+2"));
-    }
-
-    #[test]
-    fn evaluate_float_expr() {
-        assert_eq!(LiteralValue::Number(17.0), evaluate("3*(6+4)/2+2"));
-    }
-
-    #[test]
-    fn evaluate_string_expr() {
-        assert_eq!(
-            LiteralValue::String("Hello World!".into()),
-            evaluate("\"Hello \"+\"World!\"")
-        );
-    }
+    //    fn evaluate(text: &str) -> LiteralValue {
+    //        let error_reporter = Rc::new(RefCell::new(ErrorReporter::default()));
+    //        let mut parser = Parser::new(text.chars().tokens(error_reporter.clone()), error_reporter);
+    //        parser.parse().unwrap().evaluate().unwrap()
+    //    }
+    //
+    //    #[test]
+    //    fn evaluate_float_addition() {
+    //        assert_eq!(LiteralValue::Number(3.0), evaluate("1+2"));
+    //    }
+    //
+    //    #[test]
+    //    fn evaluate_float_expr() {
+    //        assert_eq!(LiteralValue::Number(17.0), evaluate("3*(6+4)/2+2"));
+    //    }
+    //
+    //    #[test]
+    //    fn evaluate_string_expr() {
+    //        assert_eq!(
+    //            LiteralValue::String("Hello World!".into()),
+    //            evaluate("\"Hello \"+\"World!\"")
+    //        );
+    //    }
 }

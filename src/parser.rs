@@ -1,6 +1,7 @@
 use crate::error_reporter;
 use crate::error_reporter::{Error, ErrorReporter};
 use crate::expr::{Expr, LiteralValue};
+use crate::statement::Statement;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use std::cell::RefCell;
@@ -27,8 +28,33 @@ where
         }
     }
 
-    pub fn parse(&mut self) -> Option<Expr> {
-        self.expression().ok()
+    pub fn parse(&mut self) -> error_reporter::Result<Vec<Statement>> {
+        let mut statements = Vec::new();
+        while !self.peek_token().is_none() {
+            statements.push(self.statement()?);
+        }
+        Ok(statements)
+    }
+
+    fn statement(&mut self) -> error_reporter::Result<Statement> {
+        if self.peek_token_type() == Some(TokenType::Print) {
+            self.next_token();
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> error_reporter::Result<Statement> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after value");
+        return Ok(Statement::Print { expr });
+    }
+
+    fn expression_statement(&mut self) -> error_reporter::Result<Statement> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after value");
+        return Ok(Statement::Expression { expr });
     }
 
     fn expression(&mut self) -> error_reporter::Result<Expr> {
@@ -196,6 +222,15 @@ where
 
     fn peek_token_type(&mut self) -> Option<TokenType> {
         self.peek_token().map(|token| token.token_type)
+    }
+
+    fn consume(&mut self, token_type: TokenType, error_message: &str) {
+        let token = self.peek_token();
+        if matches!(token, Some(Token{token_type: t, ..}) if t == token_type) {
+            self.next_token();
+        } else {
+            self.error(token, error_message);
+        }
     }
 
     fn error(&mut self, token: Option<Token>, message: &str) -> Error {
