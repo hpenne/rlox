@@ -9,7 +9,6 @@ mod token;
 mod token_type;
 
 use crate::error_reporter::ErrorReporter;
-use crate::evaluate_expr::EvaluateExpr;
 use crate::exec_stmt::ExecuteStatement;
 use crate::parser::Parser;
 use crate::scanner::TokenScanner;
@@ -62,7 +61,9 @@ fn run(source: &str, error: Rc<RefCell<ErrorReporter>>) {
     let mut parser = Parser::new(source.chars().tokens(error.clone()), error);
     if let Ok(statements) = parser.parse() {
         for statement in statements {
-            statement.execute();
+            if statement.execute().is_err() {
+                break;
+            }
         }
     }
 }
