@@ -28,12 +28,34 @@ where
         }
     }
 
-    pub fn parse(&mut self) -> error_reporter::Result<Vec<Statement>> {
+    pub fn parse(&mut self) -> Vec<Statement> {
         let mut statements = Vec::new();
         while !self.peek_token().is_none() {
-            statements.push(self.statement()?);
+            match self.declaration() {
+                Ok(statement) => statements.push(statement),
+                Err(_) => self.synchronize(),
+            }
         }
-        Ok(statements)
+        statements
+    }
+
+    fn declaration(&mut self) -> error_reporter::Result<Statement> {
+        if self.match_token_type(TokenType::Var) {
+            self.var_declaration()
+        } else {
+            self.statement()
+        }
+    }
+
+    fn var_declaration(&mut self) -> error_reporter::Result<Statement> {
+        let name = self.consume(TokenType::Identifier, "Expect variable name")?;
+        let initializer = if self.match_token_type(TokenType::Equal) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(TokenType::Semicolon, "Expect ';' after variable name")?;
+        Ok(Statement::Var { name, initializer })
     }
 
     fn statement(&mut self) -> error_reporter::Result<Statement> {
@@ -47,13 +69,13 @@ where
 
     fn print_statement(&mut self) -> error_reporter::Result<Statement> {
         let expr = self.expression()?;
-        self.consume(TokenType::Semicolon, "Expected ';' after value");
+        self.consume(TokenType::Semicolon, "Expected ';' after value")?;
         return Ok(Statement::Print { expr });
     }
 
     fn expression_statement(&mut self) -> error_reporter::Result<Statement> {
         let expr = self.expression()?;
-        self.consume(TokenType::Semicolon, "Expected ';' after value");
+        self.consume(TokenType::Semicolon, "Expected ';' after value")?;
         return Ok(Statement::Expression { expr });
     }
 
@@ -181,6 +203,11 @@ where
                 value: LiteralValue::String(lexeme),
             }),
             Some(Token {
+                token_type: TokenType::Identifier,
+                lexeme,
+                ..
+            }) => Ok(Expr::Variable { name: lexeme }),
+            Some(Token {
                 token_type: TokenType::LeftParen,
                 ..
             }) => {
@@ -213,6 +240,16 @@ where
         }
     }
 
+    fn match_token_type(&mut self, token_type: TokenType) -> bool {
+        if let Some(next) = self.peek_token_type() {
+            if next == token_type {
+                self.next_token();
+                return true;
+            }
+        }
+        false
+    }
+
     fn peek_token(&mut self) -> Option<Token> {
         if self.peeked.is_none() {
             self.peeked = self.tokens.next();
@@ -224,12 +261,16 @@ where
         self.peek_token().map(|token| token.token_type)
     }
 
-    fn consume(&mut self, token_type: TokenType, error_message: &str) {
+    fn consume(
+        &mut self,
+        token_type: TokenType,
+        error_message: &str,
+    ) -> error_reporter::Result<Token> {
         let token = self.peek_token();
         if matches!(token, Some(Token{token_type: t, ..}) if t == token_type) {
-            self.next_token();
+            Ok(self.next_token().unwrap())
         } else {
-            self.error(token, error_message);
+            Err(self.error(token, error_message))
         }
     }
 
@@ -240,6 +281,25 @@ where
         Error {
             token,
             message: message.into(),
+        }
+    }
+
+    fn synchronize(&mut self) {
+        loop {
+            if let Some(token) = self.next_token() {
+                if token.token_type == TokenType::Semicolon {
+                    return;
+                }
+                if let Some(next) = self.peek_token_type() {
+                    use TokenType::*;
+                    match next {
+                        Class | For | Fun | If | Print | Return | Var | While => return,
+                        _ => {}
+                    }
+                }
+            } else {
+                return;
+            }
         }
     }
 }

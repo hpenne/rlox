@@ -1,3 +1,4 @@
+mod environment;
 mod error_reporter;
 mod evaluate_expr;
 mod exec_stmt;
@@ -8,6 +9,7 @@ mod statement;
 mod token;
 mod token_type;
 
+use crate::environment::Environment;
 use crate::error_reporter::ErrorReporter;
 use crate::exec_stmt::ExecuteStatement;
 use crate::parser::Parser;
@@ -33,19 +35,21 @@ fn print_help() {
 }
 
 fn run_prompt() {
+    let mut environment = Environment::default();
     for line in io::stdin().lines() {
         let error = Rc::new(RefCell::new(ErrorReporter::default()));
-        run(&line.as_ref().unwrap(), error);
+        run(&line.as_ref().unwrap(), &mut environment, error);
         println!("{}", line.unwrap());
     }
 }
 
 fn run_file(file: &str) {
+    let mut environment = Environment::default();
     println!("File: {}", file);
     match fs::read_to_string(file) {
         Ok(source) => {
             let error = Rc::new(RefCell::new(ErrorReporter::default()));
-            run(&source, error.clone());
+            run(&source, &mut environment, error.clone());
             if error.borrow().has_error() {
                 std::process::exit(65);
             }
@@ -57,11 +61,13 @@ fn run_file(file: &str) {
     }
 }
 
-fn run(source: &str, error: Rc<RefCell<ErrorReporter>>) {
-    let mut parser = Parser::new(source.chars().tokens(error.clone()), error);
-    if let Ok(statements) = parser.parse() {
+fn run(source: &str, environment: &mut Environment, error: Rc<RefCell<ErrorReporter>>) {
+    let mut parser = Parser::new(source.chars().tokens(error.clone()), error.clone());
+    let statements = parser.parse();
+    if !error.borrow().has_error() {
         for statement in statements {
-            if statement.execute().is_err() {
+            if let Err(error) = statement.execute(environment) {
+                println!("Runtime error: {}", error.message);
                 break;
             }
         }

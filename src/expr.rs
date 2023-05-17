@@ -14,6 +14,9 @@ pub enum Expr {
     Literal {
         value: LiteralValue,
     },
+    Variable {
+        name: String,
+    },
     Unary {
         operator: Token,
         right: Box<Expr>,
@@ -36,9 +39,10 @@ impl Display for Expr {
                 left,
                 right,
             } => write!(f, "({} {} {})", operator.token_type, left, right),
-            Expr::Grouping { expression } => write!(f, "(group {})", expression),
-            Expr::Literal { value } => write!(f, "{}", value),
+            Expr::Grouping { expression } => write!(f, "(group {expression})"),
+            Expr::Literal { value } => write!(f, "{value}"),
             Expr::Unary { operator, right } => write!(f, "({} {})", operator.lexeme, right),
+            Expr::Variable { name } => write!(f, "{name}"),
         }
     }
 }
@@ -63,7 +67,7 @@ impl TryFrom<LiteralValue> for f64 {
         }
         Err(error_reporter::Error {
             token: None,
-            message: format!("{} is not a number", value),
+            message: format!("{value} is not a number"),
         })
     }
 }
@@ -77,7 +81,7 @@ impl TryFrom<LiteralValue> for String {
         }
         Err(error_reporter::Error {
             token: None,
-            message: format!("{} is not a string", value),
+            message: format!("{value} is not a string"),
         })
     }
 }

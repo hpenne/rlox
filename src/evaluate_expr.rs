@@ -1,21 +1,22 @@
+use crate::environment::Environment;
 use crate::error_reporter::{Error, Result};
 use crate::expr::{Expr, LiteralValue};
 use crate::token_type::TokenType;
 
 pub trait EvaluateExpr {
-    fn evaluate(&self) -> Result<LiteralValue>;
+    fn evaluate(&self, environment: &Environment) -> Result<LiteralValue>;
 }
 
 impl EvaluateExpr for Expr {
-    fn evaluate(&self) -> Result<LiteralValue> {
+    fn evaluate(&self, environment: &Environment) -> Result<LiteralValue> {
         match self {
             Expr::Binary {
                 left,
                 operator,
                 right,
             } => {
-                let left = left.evaluate()?;
-                let right = right.evaluate()?;
+                let left = left.evaluate(environment)?;
+                let right = right.evaluate(environment)?;
                 match operator.token_type {
                     TokenType::Minus => Ok(LiteralValue::Number(
                         f64::try_from(left)? - f64::try_from(right)?,
@@ -69,15 +70,25 @@ impl EvaluateExpr for Expr {
                     }
                 }
             }
-            Expr::Grouping { expression } => expression.evaluate(),
+            Expr::Grouping { expression } => expression.evaluate(environment),
             Expr::Literal { value } => Ok(value.clone()),
+            Expr::Variable { name } => {
+                if let Some(value) = environment.get(name) {
+                    Ok(value.clone())
+                } else {
+                    Err(Error {
+                        token: None,
+                        message: format!("Undefined variable {name}"),
+                    })
+                }
+            }
             Expr::Unary { operator, right } => match operator.token_type {
                 TokenType::Bang => {
-                    let boolean_value: bool = right.evaluate()?.try_into()?;
+                    let boolean_value: bool = right.evaluate(environment)?.try_into()?;
                     Ok(LiteralValue::Bool(!boolean_value))
                 }
                 TokenType::Minus => {
-                    let number: f64 = right.evaluate()?.try_into()?;
+                    let number: f64 = right.evaluate(environment)?.try_into()?;
                     Ok(LiteralValue::Number(-number))
                 }
                 _ => {
@@ -104,6 +115,6 @@ fn try_into_str(value: &LiteralValue) -> Result<&str> {
     }
     Err(Error {
         token: None,
-        message: format!("{} is not a string", value),
+        message: format!("{value} is not a string"),
     })
 }
