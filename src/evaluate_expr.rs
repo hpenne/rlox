@@ -4,12 +4,17 @@ use crate::expr::{Expr, LiteralValue};
 use crate::token_type::TokenType;
 
 pub trait EvaluateExpr {
-    fn evaluate(&self, environment: &Environment) -> Result<LiteralValue>;
+    fn evaluate(&self, environment: &mut Environment) -> Result<LiteralValue>;
 }
 
 impl EvaluateExpr for Expr {
-    fn evaluate(&self, environment: &Environment) -> Result<LiteralValue> {
+    fn evaluate(&self, environment: &mut Environment) -> Result<LiteralValue> {
         match self {
+            Expr::Assign { name, expression } => {
+                let value = expression.evaluate(environment)?;
+                environment.assign(name, value.clone())?;
+                Ok(value)
+            }
             Expr::Binary {
                 left,
                 operator,
@@ -72,16 +77,7 @@ impl EvaluateExpr for Expr {
             }
             Expr::Grouping { expression } => expression.evaluate(environment),
             Expr::Literal { value } => Ok(value.clone()),
-            Expr::Variable { name } => {
-                if let Some(value) = environment.get(name) {
-                    Ok(value.clone())
-                } else {
-                    Err(Error {
-                        token: None,
-                        message: format!("Undefined variable {name}"),
-                    })
-                }
-            }
+            Expr::Variable { name } => environment.get(name),
             Expr::Unary { operator, right } => match operator.token_type {
                 TokenType::Bang => {
                     let boolean_value: bool = right.evaluate(environment)?.try_into()?;

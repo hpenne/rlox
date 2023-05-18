@@ -3,6 +3,10 @@ use crate::token::Token;
 use std::fmt::{Display, Formatter};
 
 pub enum Expr {
+    Assign {
+        name: String,
+        expression: Box<Expr>,
+    },
     Binary {
         left: Box<Expr>,
         operator: Token,
@@ -34,6 +38,7 @@ pub enum LiteralValue {
 impl Display for Expr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Expr::Assign { name, expression } => write!(f, "({name} = {expression})"),
             Expr::Binary {
                 operator,
                 left,

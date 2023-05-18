@@ -1,3 +1,5 @@
+extern crate core;
+
 mod environment;
 mod error_reporter;
 mod evaluate_expr;
@@ -113,5 +115,10 @@ mod test {
     #[test]
     fn variable() {
         assert_eq!(run("var a = 3; print a;"), "3\n");
+    }
+
+    #[test]
+    fn assignment() {
+        assert_eq!(run("var a = 1; a = 2; a = 3; print a;"), "3\n");
     }
 }

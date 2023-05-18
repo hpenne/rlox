@@ -33,7 +33,7 @@ where
                 } else {
                     LiteralValue::Nil
                 };
-                environment.define(name.lexeme.clone(), value);
+                environment.define(&name.lexeme, value)?;
             }
         }
         Ok(())

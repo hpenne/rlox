@@ -80,7 +80,24 @@ where
     }
 
     fn expression(&mut self) -> error_reporter::Result<Expr> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> error_reporter::Result<Expr> {
+        let lhs = self.equality()?;
+        if let Some(Token { token_type, .. }) = self.peek_token() {
+            if token_type == TokenType::Equal {
+                self.next_token();
+                let value = self.expression()?;
+                if let Expr::Variable { name } = lhs {
+                    return Ok(Expr::Assign {
+                        name,
+                        expression: Box::new(value),
+                    });
+                }
+            }
+        }
+        return Ok(lhs);
     }
 
     fn equality(&mut self) -> error_reporter::Result<Expr> {
