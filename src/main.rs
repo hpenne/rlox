@@ -16,13 +16,14 @@ use crate::parser::Parser;
 use crate::scanner::TokenScanner;
 use crate::token::Token;
 use std::cell::RefCell;
+use std::io::{BufRead, BufReader, Write};
 use std::rc::Rc;
 use std::{env, fs, io};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     match args.len() {
-        1 => run_prompt(),
+        1 => run_prompt(BufReader::new(io::stdin()), io::stdout()),
         2 => run_file(&args[1]),
         _ => {
             print_help();
@@ -34,12 +35,16 @@ fn print_help() {
     println!("Usage: rlox <script>")
 }
 
-fn run_prompt() {
+fn run_prompt(input: impl BufRead, mut output: impl Write) {
     let mut environment = Environment::default();
-    for line in io::stdin().lines() {
+    for line in input.lines() {
         let error = Rc::new(RefCell::new(ErrorReporter::default()));
-        run(&line.as_ref().unwrap(), &mut environment, error);
-        println!("{}", line.unwrap());
+        run(
+            &line.as_ref().unwrap(),
+            &mut environment,
+            error,
+            &mut output,
+        );
     }
 }
 
@@ -49,7 +54,7 @@ fn run_file(file: &str) {
     match fs::read_to_string(file) {
         Ok(source) => {
             let error = Rc::new(RefCell::new(ErrorReporter::default()));
-            run(&source, &mut environment, error.clone());
+            run(&source, &mut environment, error.clone(), &mut io::stdout());
             if error.borrow().has_error() {
                 std::process::exit(65);
             }
@@ -61,13 +66,18 @@ fn run_file(file: &str) {
     }
 }
 
-fn run(source: &str, environment: &mut Environment, error: Rc<RefCell<ErrorReporter>>) {
+fn run(
+    source: &str,
+    environment: &mut Environment,
+    error: Rc<RefCell<ErrorReporter>>,
+    output: &mut impl Write,
+) {
     let mut parser = Parser::new(source.chars().tokens(error.clone()), error.clone());
     let statements = parser.parse();
     if !error.borrow().has_error() {
         for statement in statements {
-            if let Err(error) = statement.execute(environment) {
-                println!("Runtime error: {}", error.message);
+            if let Err(error) = statement.execute(environment, output) {
+                write!(output, "Runtime error: {}", error.message).unwrap();
                 break;
             }
         }
@@ -76,35 +86,32 @@ fn run(source: &str, environment: &mut Environment, error: Rc<RefCell<ErrorRepor
 
 #[cfg(test)]
 mod test {
-    use crate::error_reporter::ErrorReporter;
-    use crate::evaluate_expr::EvaluateExpr;
-    use crate::expr::LiteralValue;
-    use crate::parser::Parser;
-    use crate::scanner::TokenScanner;
-    use std::cell::RefCell;
-    use std::rc::Rc;
+    use crate::run_prompt;
 
-    //    fn evaluate(text: &str) -> LiteralValue {
-    //        let error_reporter = Rc::new(RefCell::new(ErrorReporter::default()));
-    //        let mut parser = Parser::new(text.chars().tokens(error_reporter.clone()), error_reporter);
-    //        parser.parse().unwrap().evaluate().unwrap()
-    //    }
-    //
-    //    #[test]
-    //    fn evaluate_float_addition() {
-    //        assert_eq!(LiteralValue::Number(3.0), evaluate("1+2"));
-    //    }
-    //
-    //    #[test]
-    //    fn evaluate_float_expr() {
-    //        assert_eq!(LiteralValue::Number(17.0), evaluate("3*(6+4)/2+2"));
-    //    }
-    //
-    //    #[test]
-    //    fn evaluate_string_expr() {
-    //        assert_eq!(
-    //            LiteralValue::String("Hello World!".into()),
-    //            evaluate("\"Hello \"+\"World!\"")
-    //        );
-    //    }
+    fn run(input: &str) -> String {
+        let mut output = Vec::new();
+        run_prompt(input.as_bytes(), &mut output);
+        let s = std::str::from_utf8(output.as_ref()).unwrap();
+        s.to_string()
+    }
+
+    #[test]
+    fn print_hello_world() {
+        assert_eq!(run("print \"Hello World!\";"), "Hello World!\n");
+    }
+
+    #[test]
+    fn print_expression() {
+        assert_eq!(run("print 1+2*3-(2+4)/3;"), "5\n");
+    }
+
+    #[test]
+    fn print_string_expression() {
+        assert_eq!(run("print \"Hello \"+\"World!\";"), "Hello World!\n");
+    }
+
+    #[test]
+    fn variable() {
+        assert_eq!(run("var a = 3; print a;"), "3\n");
+    }
 }
