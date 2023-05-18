@@ -3,16 +3,9 @@ use crate::error_reporter::Error;
 use crate::expr::LiteralValue;
 use std::collections::HashMap;
 
+#[derive(Default)]
 pub struct Environment {
     values: HashMap<String, LiteralValue>,
-}
-
-impl Default for Environment {
-    fn default() -> Self {
-        Self {
-            values: HashMap::default(),
-        }
-    }
 }
 
 impl Environment {
@@ -21,7 +14,7 @@ impl Environment {
             None => Ok(()),
             Some(_) => Err(Error {
                 token: None,
-                message: format!("Variable {name} already defined").to_string(),
+                message: format!("Variable {name} already defined"),
             }),
         }
     }
@@ -33,7 +26,7 @@ impl Environment {
         } else {
             Err(Error {
                 token: None,
-                message: format!("Variable {name} not defined").to_string(),
+                message: format!("Variable {name} not defined"),
             })
         }
     }

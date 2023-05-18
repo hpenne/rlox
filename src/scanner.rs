@@ -58,11 +58,11 @@ where
             self.source = current;
             return next;
         }
-        return '\0';
+        '\0'
     }
 
     fn token(&self, token_type: TokenType) -> Token {
-        Token::new(token_type, "".to_string(), self.line)
+        Token::new(token_type, String::new(), self.line)
     }
 
     fn token_with_lexeme(&self, token_type: TokenType, lexeme: String) -> Token {
@@ -70,16 +70,10 @@ where
     }
 
     fn consume_line(&mut self) {
-        loop {
-            match self.source.next() {
-                Some(c) => match c {
-                    '\n' => {
-                        self.line += 1;
-                        break;
-                    }
-                    _ => {}
-                },
-                None => break,
+        for c in self.source.by_ref() {
+            if c == '\n' {
+                self.line += 1;
+                break;
             }
         }
     }
@@ -87,8 +81,8 @@ where
     fn string_literal(&mut self) -> Option<String> {
         let mut literal = String::default();
         loop {
-            match self.source.next() {
-                Some(c) => match c {
+            if let Some(c) = self.source.next() {
+                match c {
                     '\n' => {
                         self.line += 1;
                     }
@@ -96,13 +90,12 @@ where
                     _ => {
                         literal.push(c);
                     }
-                },
-                None => {
-                    self.error_reporter
-                        .borrow_mut()
-                        .error(self.line, "Unterminated string");
-                    return None;
                 }
+            } else {
+                self.error_reporter
+                    .borrow_mut()
+                    .error(self.line, "Unterminated string");
+                return None;
             }
         }
     }
@@ -143,7 +136,7 @@ where
     }
 
     fn reserved_word_token(&self, identifier: &str) -> Option<Token> {
-        if let Some(token_type) = reserverd_word_token_type(identifier) {
+        if let Some(token_type) = reserved_word_token_type(identifier) {
             return Some(self.token(token_type));
         }
         None
@@ -211,7 +204,7 @@ where
                 }
 
                 // Whitespace etc:
-                Some(' ') | Some('\r') | Some('\t') => {}
+                Some(' ' | '\r' | '\t') => {}
                 Some('\n') => {
                     self.line += 1;
                 }
@@ -250,19 +243,11 @@ where
     }
 }
 
-fn is_letter(c: char) -> bool {
-    match c {
-        'a'..='z' => true,
-        'A'..='Z' => true,
-        _ => false,
-    }
-}
-
 fn is_identifier_char(c: char) -> bool {
-    c.is_numeric() || is_letter(c)
+    c.is_numeric() || c.is_ascii_alphabetic()
 }
 
-fn reserverd_word_token_type(identifier: &str) -> Option<TokenType> {
+fn reserved_word_token_type(identifier: &str) -> Option<TokenType> {
     match identifier {
         "and" => Some(TokenType::And),
         "class" => Some(TokenType::Class),

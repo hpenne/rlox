@@ -34,7 +34,7 @@ fn main() {
 }
 
 fn print_help() {
-    println!("Usage: rlox <script>")
+    println!("Usage: rlox <script>");
 }
 
 fn run_prompt(input: impl BufRead, mut output: impl Write) {
@@ -42,9 +42,9 @@ fn run_prompt(input: impl BufRead, mut output: impl Write) {
     for line in input.lines() {
         let error = Rc::new(RefCell::new(ErrorReporter::default()));
         run(
-            &line.as_ref().unwrap(),
+            line.as_ref().unwrap(),
             &mut environment,
-            error,
+            &error,
             &mut output,
         );
     }
@@ -52,17 +52,17 @@ fn run_prompt(input: impl BufRead, mut output: impl Write) {
 
 fn run_file(file: &str) {
     let mut environment = Environment::default();
-    println!("File: {}", file);
+    println!("File: {file}");
     match fs::read_to_string(file) {
         Ok(source) => {
             let error = Rc::new(RefCell::new(ErrorReporter::default()));
-            run(&source, &mut environment, error.clone(), &mut io::stdout());
+            run(&source, &mut environment, &error, &mut io::stdout());
             if error.borrow().has_error() {
                 std::process::exit(65);
             }
         }
         Err(e) => {
-            println!("Failed to read from file: {}", e);
+            println!("Failed to read from file: {e}");
             std::process::exit(1);
         }
     }
@@ -71,7 +71,7 @@ fn run_file(file: &str) {
 fn run(
     source: &str,
     environment: &mut Environment,
-    error: Rc<RefCell<ErrorReporter>>,
+    error: &Rc<RefCell<ErrorReporter>>,
     output: &mut impl Write,
 ) {
     let mut parser = Parser::new(source.chars().tokens(error.clone()), error.clone());

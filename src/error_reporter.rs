@@ -1,15 +1,9 @@
 use crate::token::Token;
 use std::result;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ErrorReporter {
     has_error: bool,
-}
-
-impl Default for ErrorReporter {
-    fn default() -> Self {
-        Self { has_error: false }
-    }
 }
 
 impl ErrorReporter {
@@ -25,12 +19,12 @@ impl ErrorReporter {
                 message,
             );
         } else {
-            println!("Error: {}", message);
+            println!("Error: {message}");
         }
     }
 
     pub fn report(&mut self, line: usize, loc: &str, message: &str) {
-        println!("[line {}] Error {}: {}", line, loc, message);
+        println!("[line {line}] Error {loc}: {message}");
         self.has_error = true;
     }
 

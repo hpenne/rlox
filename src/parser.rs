@@ -30,7 +30,7 @@ where
 
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut statements = Vec::new();
-        while !self.peek_token().is_none() {
+        while self.peek_token().is_some() {
             match self.declaration() {
                 Ok(statement) => statements.push(statement),
                 Err(_) => self.synchronize(),
@@ -70,13 +70,13 @@ where
     fn print_statement(&mut self) -> error_reporter::Result<Statement> {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value")?;
-        return Ok(Statement::Print { expr });
+        Ok(Statement::Print { expr })
     }
 
     fn expression_statement(&mut self) -> error_reporter::Result<Statement> {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value")?;
-        return Ok(Statement::Expression { expr });
+        Ok(Statement::Expression { expr })
     }
 
     fn expression(&mut self) -> error_reporter::Result<Expr> {
@@ -97,7 +97,7 @@ where
                 }
             }
         }
-        return Ok(lhs);
+        Ok(lhs)
     }
 
     fn equality(&mut self) -> error_reporter::Result<Expr> {
@@ -120,9 +120,11 @@ where
     fn comparison(&mut self) -> error_reporter::Result<Expr> {
         let mut expr = self.term()?;
         while let Some(token_type) = self.peek_token_type() {
-            use TokenType::*;
             match token_type {
-                Greater | GreaterEqual | Less | LessEqual => {
+                TokenType::Greater
+                | TokenType::GreaterEqual
+                | TokenType::Less
+                | TokenType::LessEqual => {
                     expr = Expr::Binary {
                         left: Box::new(expr),
                         operator: self.next_token().unwrap(),
@@ -181,7 +183,7 @@ where
                 _ => {}
             }
         }
-        return self.primary();
+        self.primary()
     }
 
     fn primary(&mut self) -> error_reporter::Result<Expr> {
@@ -294,7 +296,7 @@ where
     fn error(&mut self, token: Option<Token>, message: &str) -> Error {
         self.error_reporter
             .borrow_mut()
-            .error_with_token(token.clone(), &message);
+            .error_with_token(token.clone(), message);
         Error {
             token,
             message: message.into(),
@@ -308,9 +310,15 @@ where
                     return;
                 }
                 if let Some(next) = self.peek_token_type() {
-                    use TokenType::*;
                     match next {
-                        Class | For | Fun | If | Print | Return | Var | While => return,
+                        TokenType::Class
+                        | TokenType::For
+                        | TokenType::Fun
+                        | TokenType::If
+                        | TokenType::Print
+                        | TokenType::Return
+                        | TokenType::Var
+                        | TokenType::While => return,
                         _ => {}
                     }
                 }

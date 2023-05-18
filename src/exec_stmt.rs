@@ -17,17 +17,16 @@ where
     W: Write,
 {
     fn execute(&self, environment: &mut Environment, output: &mut W) -> error_reporter::Result<()> {
-        use Statement::*;
         match self {
-            Expression { expr } => {
+            Statement::Expression { expr } => {
                 expr.evaluate(environment)?;
             }
-            Print { expr } => {
-                write!(output, "{}\n", expr.evaluate(environment)?)
+            Statement::Print { expr } => {
+                writeln!(output, "{}", expr.evaluate(environment)?)
                     .expect("Write to output failed");
                 output.flush().unwrap();
             }
-            Var { name, initializer } => {
+            Statement::Var { name, initializer } => {
                 let value = if let Some(initializer) = initializer {
                     initializer.evaluate(environment)?
                 } else {

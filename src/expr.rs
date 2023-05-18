@@ -55,9 +55,9 @@ impl Display for Expr {
 impl Display for LiteralValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            LiteralValue::Bool(value) => write!(f, "{}", value),
-            LiteralValue::String(value) => write!(f, "{}", value),
-            LiteralValue::Number(value) => write!(f, "{}", value),
+            LiteralValue::Bool(value) => write!(f, "{value}"),
+            LiteralValue::String(value) => write!(f, "{value}"),
+            LiteralValue::Number(value) => write!(f, "{value}"),
             LiteralValue::Nil => write!(f, "nil"),
         }
     }
@@ -97,8 +97,7 @@ impl TryFrom<LiteralValue> for bool {
     fn try_from(value: LiteralValue) -> Result<Self, Self::Error> {
         match value {
             LiteralValue::Bool(value) => Ok(value),
-            LiteralValue::String(_) => Ok(true),
-            LiteralValue::Number(_) => Ok(true),
+            LiteralValue::String(_) | LiteralValue::Number(_) => Ok(true),
             LiteralValue::Nil => Ok(false),
         }
     }
