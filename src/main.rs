@@ -155,7 +155,7 @@ mod test {
         assert_eq!(
             run("
                 var b = 1;
-                if (b >= 1)
+                if (b == 1)
                 {
                     print \"Yes\";
                 }

@@ -81,17 +81,14 @@ where
         self.consume(TokenType::LeftParen, "Expected '(' after 'if'")?;
         let condition = self.expression()?;
         self.consume(TokenType::RightParen, "Expected ')' after 'if' condition")?;
-        let then_branch = Box::new(self.statement()?);
-        let _t = self.peek_token();
-        let else_branch = if self.match_token_type(TokenType::Else) {
-            Some(Box::new(self.statement()?))
-        } else {
-            None
-        };
         Ok(Statement::If {
             condition,
-            then_branch,
-            else_branch,
+            then_branch: Box::new(self.statement()?),
+            else_branch: if self.match_token_type(TokenType::Else) {
+                Some(Box::new(self.statement()?))
+            } else {
+                None
+            },
         })
     }
 
