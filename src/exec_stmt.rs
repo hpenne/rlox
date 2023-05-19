@@ -28,6 +28,20 @@ where
         output: &mut W,
     ) -> error_reporter::Result<()> {
         match self {
+            Statement::Expression { expr } => {
+                expr.evaluate(environment)?;
+            }
+            Statement::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                if condition.evaluate(environment)? == LiteralValue::Bool(true) {
+                    then_branch.execute(environment, output)?;
+                } else if let Some(else_branch) = else_branch {
+                    else_branch.execute(environment, output)?;
+                }
+            }
             Statement::Print { expr } => {
                 writeln!(output, "{}", expr.evaluate(environment)?)
                     .expect("Write to output failed");
@@ -38,9 +52,6 @@ where
                 for statement in statements {
                     statement.execute(&block_env, output)?;
                 }
-            }
-            Statement::Expression { expr } => {
-                expr.evaluate(environment)?;
             }
             Statement::Var { name, initializer } => {
                 let value = if let Some(initializer) = initializer {

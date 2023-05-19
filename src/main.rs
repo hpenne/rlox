@@ -149,4 +149,24 @@ mod test {
             "1\n2\n"
         );
     }
+
+    #[test]
+    fn if_block() {
+        assert_eq!(
+            run("
+                var b = 1;
+                if (b >= 1)
+                {
+                    print \"Yes\";
+                }
+                if (b < 1)
+                {
+                    print \"No\";
+                } else {
+                    print \"Yes\";
+                }
+                "),
+            "Yes\nYes\n"
+        );
+    }
 }

@@ -61,6 +61,10 @@ where
 
     fn statement(&mut self) -> error_reporter::Result<Statement> {
         match self.peek_token_type() {
+            Some(TokenType::If) => {
+                self.next_token();
+                self.if_statement()
+            }
             Some(TokenType::Print) => {
                 self.next_token();
                 self.print_statement()
@@ -71,6 +75,24 @@ where
             }
             _ => self.expression_statement(),
         }
+    }
+
+    fn if_statement(&mut self) -> error_reporter::Result<Statement> {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'if'")?;
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen, "Expected ')' after 'if' condition")?;
+        let then_branch = Box::new(self.statement()?);
+        let _t = self.peek_token();
+        let else_branch = if self.match_token_type(TokenType::Else) {
+            Some(Box::new(self.statement()?))
+        } else {
+            None
+        };
+        Ok(Statement::If {
+            condition,
+            then_branch,
+            else_branch,
+        })
     }
 
     fn block(&mut self) -> error_reporter::Result<Statement> {
@@ -84,6 +106,10 @@ where
         ) {
             statements.push(self.declaration()?);
         }
+        if self.peek_token_type().is_some() {
+            self.next_token();
+        }
+
         Ok(Block { statements })
     }
 
