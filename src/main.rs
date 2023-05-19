@@ -1,5 +1,17 @@
 extern crate core;
 
+use std::cell::RefCell;
+use std::io::{BufRead, BufReader, Write};
+use std::rc::Rc;
+use std::{env, fs, io};
+
+use crate::environment::Environment;
+use crate::error_reporter::ErrorReporter;
+use crate::exec_stmt::ExecuteStatement;
+use crate::parser::Parser;
+use crate::scanner::TokenScanner;
+use crate::token::Token;
+
 mod environment;
 mod error_reporter;
 mod evaluate_expr;
@@ -10,17 +22,6 @@ mod scanner;
 mod statement;
 mod token;
 mod token_type;
-
-use crate::environment::Environment;
-use crate::error_reporter::ErrorReporter;
-use crate::exec_stmt::ExecuteStatement;
-use crate::parser::Parser;
-use crate::scanner::TokenScanner;
-use crate::token::Token;
-use std::cell::RefCell;
-use std::io::{BufRead, BufReader, Write};
-use std::rc::Rc;
-use std::{env, fs, io};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -88,16 +89,17 @@ fn run(
 
 #[cfg(test)]
 mod test {
-    use crate::environment::Environment;
-    use crate::error_reporter::ErrorReporter;
     use std::cell::RefCell;
     use std::rc::Rc;
+
+    use crate::environment::Environment;
+    use crate::error_reporter::ErrorReporter;
 
     fn run(input: &str) -> String {
         let mut environment = Rc::new(RefCell::new(Environment::default()));
         let mut output = Vec::new();
         let error = Rc::new(RefCell::new(ErrorReporter::default()));
-        crate::run(&input, &mut environment, &error, &mut output);
+        crate::run(input, &mut environment, &error, &mut output);
         let s = std::str::from_utf8(output.as_ref()).unwrap();
         s.to_string()
     }

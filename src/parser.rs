@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::error_reporter;
 use crate::error_reporter::{Error, ErrorReporter};
 use crate::expr::{Expr, LiteralValue};
@@ -5,8 +8,6 @@ use crate::statement::Statement;
 use crate::statement::Statement::Block;
 use crate::token::Token;
 use crate::token_type::TokenType;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 pub struct Parser<I>
 where
@@ -206,7 +207,7 @@ where
 
     fn logic_or(&mut self) -> error_reporter::Result<Expr> {
         let mut expr = self.logic_and()?;
-        while Some(TokenType::Or) == self.peek_token_type() {
+        while self.check_token_type(TokenType::Or) {
             expr = Expr::Logical {
                 left: Box::new(expr),
                 operator: self.next_token().unwrap(),
@@ -218,7 +219,7 @@ where
 
     fn logic_and(&mut self) -> error_reporter::Result<Expr> {
         let mut expr = self.equality()?;
-        while Some(TokenType::And) == self.peek_token_type() {
+        while self.check_token_type(TokenType::And) {
             expr = Expr::Logical {
                 left: Box::new(expr),
                 operator: self.next_token().unwrap(),
@@ -409,7 +410,7 @@ where
     }
 
     fn check_token_type(&mut self, token_type: TokenType) -> bool {
-        self.peek_token().map(|token| token.token_type) == Some(token_type)
+        self.peek_token_type() == Some(token_type)
     }
 
     fn consume(
