@@ -42,6 +42,11 @@ where
                     else_branch.execute(environment, output)?;
                 }
             }
+            Statement::While { condition, block } => {
+                while condition.evaluate(environment)? == LiteralValue::Bool(true) {
+                    block.execute(environment, output)?;
+                }
+            }
             Statement::Print { expr } => {
                 writeln!(output, "{}", expr.evaluate(environment)?)
                     .expect("Write to output failed");

@@ -65,6 +65,10 @@ where
                 self.next_token();
                 self.if_statement()
             }
+            Some(TokenType::While) => {
+                self.next_token();
+                self.while_statement()
+            }
             Some(TokenType::Print) => {
                 self.next_token();
                 self.print_statement()
@@ -89,6 +93,19 @@ where
             } else {
                 None
             },
+        })
+    }
+
+    fn while_statement(&mut self) -> error_reporter::Result<Statement> {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'while'")?;
+        let condition = self.expression()?;
+        self.consume(
+            TokenType::RightParen,
+            "Expected ')' after 'while' condition",
+        )?;
+        Ok(Statement::While {
+            condition,
+            block: Box::new(self.statement()?),
         })
     }
 
@@ -127,7 +144,7 @@ where
     }
 
     fn assignment(&mut self) -> error_reporter::Result<Expr> {
-        let lhs = self.equality()?;
+        let lhs = self.logic_or()?;
         if let Some(Token { token_type, .. }) = self.peek_token() {
             if token_type == TokenType::Equal {
                 self.next_token();
@@ -141,6 +158,30 @@ where
             }
         }
         Ok(lhs)
+    }
+
+    fn logic_or(&mut self) -> error_reporter::Result<Expr> {
+        let mut expr = self.logic_and()?;
+        while Some(TokenType::Or) == self.peek_token_type() {
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                operator: self.next_token().unwrap(),
+                right: Box::new(self.logic_and()?),
+            }
+        }
+        Ok(expr)
+    }
+
+    fn logic_and(&mut self) -> error_reporter::Result<Expr> {
+        let mut expr = self.equality()?;
+        while Some(TokenType::And) == self.peek_token_type() {
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                operator: self.next_token().unwrap(),
+                right: Box::new(self.equality()?),
+            }
+        }
+        Ok(expr)
     }
 
     fn equality(&mut self) -> error_reporter::Result<Expr> {

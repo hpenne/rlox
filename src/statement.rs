@@ -10,6 +10,10 @@ pub enum Statement {
         then_branch: Box<Statement>,
         else_branch: Option<Box<Statement>>,
     },
+    While {
+        condition: Expr,
+        block: Box<Statement>,
+    },
     Print {
         expr: Expr,
     },

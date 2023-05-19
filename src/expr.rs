@@ -12,6 +12,11 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Logical {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
     Grouping {
         expression: Box<Expr>,
     },
@@ -40,6 +45,11 @@ impl Display for Expr {
         match self {
             Expr::Assign { name, expression } => write!(f, "({name} = {expression})"),
             Expr::Binary {
+                operator,
+                left,
+                right,
+            }
+            | Expr::Logical {
                 operator,
                 left,
                 right,

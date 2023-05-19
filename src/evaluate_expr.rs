@@ -10,6 +10,7 @@ pub trait EvaluateExpr {
 }
 
 impl EvaluateExpr for Expr {
+    #[allow(clippy::too_many_lines)]
     fn evaluate(&self, environment: &Rc<RefCell<Environment>>) -> Result<LiteralValue> {
         match self {
             Expr::Assign { name, expression } => {
@@ -56,25 +57,47 @@ impl EvaluateExpr for Expr {
                         f64::try_from(left)? * f64::try_from(right)?,
                     )),
                     TokenType::Greater => Ok(LiteralValue::Bool(
-                        bool::try_from(left)? && !bool::try_from(right)?,
+                        f64::try_from(left)? > f64::try_from(right)?,
                     )),
                     TokenType::GreaterEqual => Ok(LiteralValue::Bool(
-                        bool::try_from(left)? >= bool::try_from(right)?,
+                        f64::try_from(left)? >= f64::try_from(right)?,
                     )),
                     TokenType::Less => Ok(LiteralValue::Bool(
-                        !bool::try_from(left)? && bool::try_from(right)?,
+                        f64::try_from(left)? < f64::try_from(right)?,
                     )),
                     TokenType::LessEqual => Ok(LiteralValue::Bool(
-                        bool::try_from(left)? <= bool::try_from(right)?,
+                        f64::try_from(left)? <= f64::try_from(right)?,
                     )),
                     TokenType::EqualEqual => Ok(LiteralValue::Bool(is_equal(&left, &right))),
                     TokenType::BangEqual => Ok(LiteralValue::Bool(!is_equal(&left, &right))),
-                    _ => {
-                        panic!(
-                            "Missing implementation for operator {}",
-                            operator.token_type
-                        );
+                    _ => panic!(
+                        "Missing implementation for operator {}",
+                        operator.token_type
+                    ),
+                }
+            }
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => {
+                let left: bool = left.evaluate(environment)?.try_into()?;
+                match operator.token_type {
+                    TokenType::Or => {
+                        if left {
+                            Ok(LiteralValue::Bool(true))
+                        } else {
+                            Ok(LiteralValue::Bool(right.evaluate(environment)?.try_into()?))
+                        }
                     }
+                    TokenType::And => {
+                        if left {
+                            Ok(LiteralValue::Bool(right.evaluate(environment)?.try_into()?))
+                        } else {
+                            Ok(LiteralValue::Bool(false))
+                        }
+                    }
+                    _ => panic!("Unsupported binary operator: {}", operator.token_type),
                 }
             }
             Expr::Grouping { expression } => expression.evaluate(environment),

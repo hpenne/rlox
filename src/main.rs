@@ -118,6 +118,32 @@ mod test {
     }
 
     #[test]
+    fn and_operator() {
+        assert_eq!(
+            run("
+                print false and false;
+                print false and true;
+                print true and false;
+                print true and true;
+                "),
+            "false\nfalse\nfalse\ntrue\n"
+        );
+    }
+
+    #[test]
+    fn or_operator() {
+        assert_eq!(
+            run("
+                print false or false;
+                print false or true;
+                print true or false;
+                print true or true;
+                "),
+            "false\ntrue\ntrue\ntrue\n"
+        );
+    }
+
+    #[test]
     fn variable() {
         assert_eq!(run("var a = 3; print a;"), "3\n");
     }
@@ -156,17 +182,28 @@ mod test {
             run("
                 var b = 1;
                 if (b == 1)
-                {
                     print \"Yes\";
-                }
-                if (b < 1)
-                {
+                if (b < 1) {
                     print \"No\";
                 } else {
                     print \"Yes\";
                 }
                 "),
             "Yes\nYes\n"
+        );
+    }
+
+    #[test]
+    fn while_block() {
+        assert_eq!(
+            run("
+                var b = 3;
+                while (b > 0) {
+                    print b;
+                    b = b - 1;
+                }
+                "),
+            "3\n2\n1\n"
         );
     }
 }
