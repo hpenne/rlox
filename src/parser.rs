@@ -2,6 +2,7 @@ use crate::error_reporter;
 use crate::error_reporter::{Error, ErrorReporter};
 use crate::expr::{Expr, LiteralValue};
 use crate::statement::Statement;
+use crate::statement::Statement::Block;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use std::cell::RefCell;
@@ -59,12 +60,31 @@ where
     }
 
     fn statement(&mut self) -> error_reporter::Result<Statement> {
-        if self.peek_token_type() == Some(TokenType::Print) {
-            self.next_token();
-            self.print_statement()
-        } else {
-            self.expression_statement()
+        match self.peek_token_type() {
+            Some(TokenType::Print) => {
+                self.next_token();
+                self.print_statement()
+            }
+            Some(TokenType::LeftBrace) => {
+                self.next_token();
+                self.block()
+            }
+            _ => self.expression_statement(),
         }
+    }
+
+    fn block(&mut self) -> error_reporter::Result<Statement> {
+        let mut statements = Vec::new();
+        while !matches!(
+            self.peek_token(),
+            None | Some(Token {
+                token_type: TokenType::RightBrace,
+                ..
+            })
+        ) {
+            statements.push(self.declaration()?);
+        }
+        Ok(Block { statements })
     }
 
     fn print_statement(&mut self) -> error_reporter::Result<Statement> {
@@ -221,11 +241,9 @@ where
             }) => Ok(Expr::Literal {
                 value: LiteralValue::String(lexeme),
             }),
-            Some(Token {
-                token_type: TokenType::Identifier,
-                lexeme,
-                ..
-            }) => Ok(Expr::Variable { name: lexeme }),
+            Some(token) if token.token_type == TokenType::Identifier => {
+                Ok(Expr::Variable { name: token })
+            }
             Some(Token {
                 token_type: TokenType::LeftParen,
                 ..
@@ -241,12 +259,14 @@ where
                 }
             }
             None => {
+                let token = current.clone().next();
                 self.tokens = current;
-                Err(self.error(None, "Unexpected end of file"))
+                Err(self.error(token, "Unexpected end of file"))
             }
             _ => {
+                let token = current.clone().next();
                 self.tokens = current;
-                Err(self.error(None, "Expected expression"))
+                Err(self.error(token, "Expected expression"))
             }
         }
     }

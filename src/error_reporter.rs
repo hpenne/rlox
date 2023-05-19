@@ -15,7 +15,7 @@ impl ErrorReporter {
         if let Some(token) = token {
             self.report(
                 token.line,
-                format!(" at '{}' ", &token.lexeme).as_ref(),
+                format!("at '{}' ", &token.lexeme).as_ref(),
                 message,
             );
         } else {

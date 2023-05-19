@@ -38,7 +38,7 @@ fn print_help() {
 }
 
 fn run_prompt(input: impl BufRead, mut output: impl Write) {
-    let mut environment = Environment::default();
+    let mut environment = Rc::new(RefCell::new(Environment::default()));
     for line in input.lines() {
         let error = Rc::new(RefCell::new(ErrorReporter::default()));
         run(
@@ -51,7 +51,7 @@ fn run_prompt(input: impl BufRead, mut output: impl Write) {
 }
 
 fn run_file(file: &str) {
-    let mut environment = Environment::default();
+    let mut environment = Rc::new(RefCell::new(Environment::default()));
     println!("File: {file}");
     match fs::read_to_string(file) {
         Ok(source) => {
@@ -70,7 +70,7 @@ fn run_file(file: &str) {
 
 fn run(
     source: &str,
-    environment: &mut Environment,
+    environment: &mut Rc<RefCell<Environment>>,
     error: &Rc<RefCell<ErrorReporter>>,
     output: &mut impl Write,
 ) {
@@ -88,11 +88,16 @@ fn run(
 
 #[cfg(test)]
 mod test {
-    use crate::run_prompt;
+    use crate::environment::Environment;
+    use crate::error_reporter::ErrorReporter;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     fn run(input: &str) -> String {
+        let mut environment = Rc::new(RefCell::new(Environment::default()));
         let mut output = Vec::new();
-        run_prompt(input.as_bytes(), &mut output);
+        let error = Rc::new(RefCell::new(ErrorReporter::default()));
+        crate::run(&input, &mut environment, &error, &mut output);
         let s = std::str::from_utf8(output.as_ref()).unwrap();
         s.to_string()
     }
@@ -119,6 +124,29 @@ mod test {
 
     #[test]
     fn assignment() {
-        assert_eq!(run("var a = 1; a = 2; a = 3; print a;"), "3\n");
+        assert_eq!(
+            run("
+                var a = 1;
+                a = 2;
+                a = 3;
+                print a;
+                "),
+            "3\n"
+        );
+    }
+
+    #[test]
+    fn block() {
+        assert_eq!(
+            run("
+                var b = 1;
+                print b;
+                {
+                    var b = 2;
+                    print b;
+                }
+                "),
+            "1\n2\n"
+        );
     }
 }

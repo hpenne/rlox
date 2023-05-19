@@ -5,6 +5,9 @@ pub enum Statement {
     Print {
         expr: Expr,
     },
+    Block {
+        statements: Vec<Statement>,  
+    },
     Expression {
         expr: Expr,
     },

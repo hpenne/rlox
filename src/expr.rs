@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 
 pub enum Expr {
     Assign {
-        name: String,
+        name: Token,
         expression: Box<Expr>,
     },
     Binary {
@@ -19,7 +19,7 @@ pub enum Expr {
         value: LiteralValue,
     },
     Variable {
-        name: String,
+        name: Token,
     },
     Unary {
         operator: Token,
