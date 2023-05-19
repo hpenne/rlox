@@ -69,6 +69,10 @@ where
                 self.next_token();
                 self.while_statement()
             }
+            Some(TokenType::For) => {
+                self.next_token();
+                self.for_statement()
+            }
             Some(TokenType::Print) => {
                 self.next_token();
                 self.print_statement()
@@ -107,6 +111,46 @@ where
             condition,
             block: Box::new(self.statement()?),
         })
+    }
+
+    fn for_statement(&mut self) -> error_reporter::Result<Statement> {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'for'")?;
+        let initializer = if self.match_token_type(TokenType::Semicolon) {
+            None
+        } else if self.match_token_type(TokenType::Var) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+        let condition = if self.check_token_type(TokenType::Semicolon) {
+            Expr::Literal {
+                value: LiteralValue::Bool(true),
+            }
+        } else {
+            self.expression()?
+        };
+        self.consume(TokenType::Semicolon, "Expected ';' after loop condition")?;
+
+        let mut while_body = Vec::new();
+        if !self.check_token_type(TokenType::RightParen) {
+            while_body.push(Statement::Expression {
+                expr: self.expression()?,
+            });
+        };
+        self.consume(TokenType::RightParen, "Expected ')' after for clauses")?;
+        while_body.insert(0, self.statement()?);
+        let mut statement = Statement::While {
+            condition,
+            block: Box::new(Statement::Block {
+                statements: while_body,
+            }),
+        };
+        if let Some(initalizer) = initializer {
+            statement = Statement::Block {
+                statements: vec![initalizer, statement],
+            }
+        }
+        Ok(statement)
     }
 
     fn block(&mut self) -> error_reporter::Result<Statement> {
@@ -362,6 +406,10 @@ where
 
     fn peek_token_type(&mut self) -> Option<TokenType> {
         self.peek_token().map(|token| token.token_type)
+    }
+
+    fn check_token_type(&mut self, token_type: TokenType) -> bool {
+        self.peek_token().map(|token| token.token_type) == Some(token_type)
     }
 
     fn consume(
