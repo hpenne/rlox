@@ -1,9 +1,15 @@
 use crate::expr::Expr;
 use crate::token::Token;
 
+#[derive(Clone)]
 pub enum Statement {
     Expression {
         expr: Expr,
+    },
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        body: Vec<Statement>,
     },
     If {
         condition: Expr,

@@ -1,9 +1,11 @@
-use crate::environment::Environment;
-use crate::error_reporter::{Error, Result};
-use crate::expr::{Expr, LiteralValue};
-use crate::token_type::TokenType;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use crate::environment::Environment;
+use crate::error_reporter::{Error, Result};
+use crate::expr::Expr;
+use crate::literal_value::LiteralValue;
+use crate::token_type::TokenType;
 
 pub trait EvaluateExpr {
     fn evaluate(&self, environment: &Rc<RefCell<Environment>>) -> Result<LiteralValue>;
@@ -74,6 +76,36 @@ impl EvaluateExpr for Expr {
                         "Missing implementation for operator {}",
                         operator.token_type
                     ),
+                }
+            }
+            Expr::Call {
+                callee,
+                closing_paren,
+                arguments,
+            } => {
+                let callee_value = callee.evaluate(environment)?;
+                let argument_values = arguments
+                    .iter()
+                    .map(|arg| arg.evaluate(environment))
+                    .collect::<Result<Vec<_>>>()?;
+                if let LiteralValue::Function(func) = callee_value {
+                    if func.arity() == argument_values.len() {
+                        Ok(func.call(argument_values, environment)?)
+                    } else {
+                        Err(Error {
+                            token: Some(closing_paren.clone()),
+                            message: format!(
+                                "Wrong number of arguments to function. Got {} but function requires {}",
+                                argument_values.len(),
+                                func.arity()
+                            ),
+                        })
+                    }
+                } else {
+                    Err(Error {
+                        token: Some(closing_paren.clone()),
+                        message: "Can only call functions".into(),
+                    })
                 }
             }
             Expr::Logical {

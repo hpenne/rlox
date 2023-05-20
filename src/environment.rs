@@ -1,10 +1,11 @@
-use crate::error_reporter;
-use crate::error_reporter::Error;
-use crate::expr::LiteralValue;
-use crate::token::Token;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+
+use crate::error_reporter;
+use crate::error_reporter::Error;
+use crate::literal_value::LiteralValue;
+use crate::token::Token;
 
 #[derive(Default)]
 pub struct Environment {
@@ -57,7 +58,7 @@ impl Environment {
 
         Err(Error {
             token: None,
-            message: format!("Undefined variable {name}"),
+            message: format!("Undefined variable {}", name.lexeme),
         })
     }
 }

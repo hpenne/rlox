@@ -1,11 +1,13 @@
-use crate::environment::Environment;
-use crate::error_reporter;
-use crate::evaluate_expr::EvaluateExpr;
-use crate::expr::LiteralValue;
-use crate::statement::Statement;
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
+
+use crate::environment::Environment;
+use crate::error_reporter;
+use crate::evaluate_expr::EvaluateExpr;
+use crate::literal_value::LiteralValue;
+use crate::lox_callable::LoxCallable;
+use crate::statement::Statement;
 
 pub trait ExecuteStatement<W>
 where
@@ -31,6 +33,13 @@ where
             Statement::Expression { expr } => {
                 expr.evaluate(environment)?;
             }
+            Statement::Function { name, params, body } => (*environment).borrow_mut().define(
+                name,
+                LiteralValue::Function(LoxCallable::from_statement(
+                    params.clone(),
+                    (*body).clone(),
+                )),
+            )?,
             Statement::If {
                 condition,
                 then_branch,

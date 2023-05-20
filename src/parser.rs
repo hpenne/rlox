@@ -3,7 +3,8 @@ use std::rc::Rc;
 
 use crate::error_reporter;
 use crate::error_reporter::{Error, ErrorReporter};
-use crate::expr::{Expr, LiteralValue};
+use crate::expr::Expr;
+use crate::literal_value::LiteralValue;
 use crate::statement::Statement;
 use crate::statement::Statement::Block;
 use crate::token::Token;
@@ -42,10 +43,16 @@ where
     }
 
     fn declaration(&mut self) -> error_reporter::Result<Statement> {
-        if self.match_token_type(TokenType::Var) {
-            self.var_declaration()
-        } else {
-            self.statement()
+        match self.peek_token_type() {
+            Some(TokenType::Var) => {
+                self.next_token();
+                self.var_declaration()
+            }
+            Some(TokenType::Fun) => {
+                self.next_token();
+                self.function("function")
+            }
+            _ => self.statement(),
         }
     }
 
@@ -58,6 +65,37 @@ where
         };
         self.consume(TokenType::Semicolon, "Expect ';' after variable name")?;
         Ok(Statement::Var { name, initializer })
+    }
+
+    fn function(&mut self, kind: &str) -> error_reporter::Result<Statement> {
+        let name = self.consume(TokenType::Identifier, &format!("Expected {kind} name"))?;
+        self.consume(
+            TokenType::LeftParen,
+            &format!("Expected '(' after {kind} name"),
+        )?;
+        let mut params = Vec::new();
+        if !self.check_token_type(TokenType::RightParen) {
+            loop {
+                if params.len() >= 255 {
+                    let token = self.peek_token().clone();
+                    self.error(token, "Can't have more than 255 parameters");
+                }
+                params.push(self.consume(TokenType::Identifier, "Expected parameter name")?);
+                if !self.match_token_type(TokenType::Comma) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RightParen, "Expected ')' after parameters")?;
+        self.consume(
+            TokenType::LeftBrace,
+            &format!("Expected '{{' before {kind} body"),
+        )?;
+        Ok(Statement::Function {
+            name,
+            params,
+            body: self.block()?,
+        })
     }
 
     fn statement(&mut self) -> error_reporter::Result<Statement> {
@@ -80,7 +118,9 @@ where
             }
             Some(TokenType::LeftBrace) => {
                 self.next_token();
-                self.block()
+                Ok(Block {
+                    statements: self.block()?,
+                })
             }
             _ => self.expression_statement(),
         }
@@ -154,7 +194,7 @@ where
         Ok(statement)
     }
 
-    fn block(&mut self) -> error_reporter::Result<Statement> {
+    fn block(&mut self) -> error_reporter::Result<Vec<Statement>> {
         let mut statements = Vec::new();
         while !matches!(
             self.peek_token(),
@@ -169,7 +209,7 @@ where
             self.next_token();
         }
 
-        Ok(Block { statements })
+        Ok(statements)
     }
 
     fn print_statement(&mut self) -> error_reporter::Result<Statement> {
@@ -312,7 +352,40 @@ where
                 _ => {}
             }
         }
-        self.primary()
+        self.call()
+    }
+
+    fn call(&mut self) -> error_reporter::Result<Expr> {
+        let mut expr = self.primary()?;
+        while self.match_token_type(TokenType::LeftParen) {
+            expr = self.finish_call(expr)?;
+        }
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> error_reporter::Result<Expr> {
+        let mut arguments = Vec::new();
+        if !self.check_token_type(TokenType::RightParen) {
+            loop {
+                if arguments.len() >= 255 {
+                    let token = self.peek_token();
+                    self.error(token, "Can't have more than 255 function arguments");
+                }
+                arguments.push(self.expression()?);
+                if !self.match_token_type(TokenType::Comma) {
+                    break;
+                }
+            }
+        }
+        let closing_paren = self.consume(
+            TokenType::RightParen,
+            "Expected ')' after function arguments",
+        )?;
+        Ok(Expr::Call {
+            callee: Box::new(callee),
+            closing_paren,
+            arguments,
+        })
     }
 
     fn primary(&mut self) -> error_reporter::Result<Expr> {

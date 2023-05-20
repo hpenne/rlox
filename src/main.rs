@@ -5,6 +5,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::rc::Rc;
 use std::{env, fs, io};
 
+use crate::builtins::add_builtin_functions;
 use crate::environment::Environment;
 use crate::error_reporter::ErrorReporter;
 use crate::exec_stmt::ExecuteStatement;
@@ -12,11 +13,14 @@ use crate::parser::Parser;
 use crate::scanner::TokenScanner;
 use crate::token::Token;
 
+mod builtins;
 mod environment;
 mod error_reporter;
 mod evaluate_expr;
 mod exec_stmt;
 mod expr;
+mod literal_value;
+mod lox_callable;
 mod parser;
 mod scanner;
 mod statement;
@@ -38,8 +42,14 @@ fn print_help() {
     println!("Usage: rlox <script>");
 }
 
+fn create_env() -> Rc<RefCell<Environment>> {
+    let environment = Rc::new(RefCell::new(Environment::default()));
+    add_builtin_functions(&mut (*environment).borrow_mut());
+    environment
+}
+
 fn run_prompt(input: impl BufRead, mut output: impl Write) {
-    let mut environment = Rc::new(RefCell::new(Environment::default()));
+    let mut environment = create_env();
     for line in input.lines() {
         let error = Rc::new(RefCell::new(ErrorReporter::default()));
         run(
@@ -52,7 +62,7 @@ fn run_prompt(input: impl BufRead, mut output: impl Write) {
 }
 
 fn run_file(file: &str) {
-    let mut environment = Rc::new(RefCell::new(Environment::default()));
+    let mut environment = create_env();
     println!("File: {file}");
     match fs::read_to_string(file) {
         Ok(source) => {
@@ -92,11 +102,11 @@ mod test {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use crate::environment::Environment;
+    use crate::create_env;
     use crate::error_reporter::ErrorReporter;
 
     fn run(input: &str) -> String {
-        let mut environment = Rc::new(RefCell::new(Environment::default()));
+        let mut environment = create_env();
         let mut output = Vec::new();
         let error = Rc::new(RefCell::new(ErrorReporter::default()));
         crate::run(input, &mut environment, &error, &mut output);
@@ -222,6 +232,23 @@ mod test {
                 }
                 "),
             "0\n1\n1\n2\n3\n5\n8\n13\n21\n34\n55\n89\n"
+        );
+    }
+
+    #[test]
+    fn clock() {
+        run("print clock();");
+    }
+
+    #[test]
+    fn func() {
+        assert_eq!(
+            run("
+                fun foo() { print \"foo\"; }
+                print foo();
+                print \"bar\";
+                "),
+            "1\n"
         );
     }
 }

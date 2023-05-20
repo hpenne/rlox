@@ -1,5 +1,6 @@
-use crate::token::Token;
 use std::result;
+
+use crate::token::Token;
 
 #[derive(Clone, Default)]
 pub struct ErrorReporter {
@@ -13,11 +14,7 @@ impl ErrorReporter {
 
     pub fn error_with_token(&mut self, token: Option<Token>, message: &str) {
         if let Some(token) = token {
-            self.report(
-                token.line,
-                format!("at '{}' ", &token.lexeme).as_ref(),
-                message,
-            );
+            self.report(token.line, format!("at '{token}' ").as_ref(), message);
         } else {
             println!("Error: {message}");
         }
