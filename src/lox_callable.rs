@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::environment::Environment;
 use crate::error_reporter::Result;
-use crate::exec_stmt::ExecuteStatement;
+use crate::exec_stmt::{ErrorOrReturn, ExecuteStatement};
 use crate::literal_value::LiteralValue;
 use crate::statement::Statement;
 use crate::token::Token;
@@ -36,7 +36,11 @@ impl LoxCallable {
                     (*environment).borrow_mut().define(param, arg)?;
                 }
                 for statement in &body {
-                    statement.execute(&environment, &mut output)?;
+                    match statement.execute(&environment, &mut output) {
+                        Ok(..) => {}
+                        Err(ErrorOrReturn::Error(error)) => return Err(error),
+                        Err(ErrorOrReturn::Return(value)) => return Ok(value),
+                    }
                 }
                 Ok(LiteralValue::Nil)
             }),

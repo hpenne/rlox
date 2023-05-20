@@ -8,7 +8,7 @@ use std::{env, fs, io};
 use crate::builtins::add_builtin_functions;
 use crate::environment::Environment;
 use crate::error_reporter::ErrorReporter;
-use crate::exec_stmt::ExecuteStatement;
+use crate::exec_stmt::{ErrorOrReturn, ExecuteStatement};
 use crate::parser::Parser;
 use crate::scanner::TokenScanner;
 use crate::token::Token;
@@ -89,7 +89,7 @@ fn run(
     let statements = parser.parse();
     if !error.borrow().has_error() {
         for statement in statements {
-            if let Err(error) = statement.execute(environment, output) {
+            if let Err(ErrorOrReturn::Error(error)) = statement.execute(environment, output) {
                 write!(output, "Runtime error: {}", error.message).unwrap();
                 break;
             }
@@ -244,10 +244,29 @@ mod test {
     fn func() {
         assert_eq!(
             run("
-                fun foo() { print \"foo\"; }
+                fun foo() { 
+                    print \"foo\"; 
+                    return 5;
+                }
                 print foo();
                 "),
-            "foo\nnil\n"
+            "foo\n5\n"
+        );
+    }
+
+    #[test]
+    fn fib() {
+        assert_eq!(
+            run("
+                fun fib(n) { 
+                    if (n <= 1) return n; 
+                    return fib(n-2) + fib(n-1);
+                }
+                for (var i = 0; i < 20; i = i + 1) {
+                    print fib(i);
+                }
+            "),
+            "0\n1\n1\n2\n3\n5\n8\n13\n21\n34\n55\n89\n144\n233\n377\n610\n987\n1597\n2584\n4181\n"
         );
     }
 }

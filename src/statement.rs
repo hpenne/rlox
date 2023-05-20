@@ -11,6 +11,10 @@ pub enum Statement {
         params: Vec<Token>,
         body: Vec<Statement>,
     },
+    Return {
+        keyword: Token,
+        expr: Expr,
+    },
     If {
         condition: Expr,
         then_branch: Box<Statement>,

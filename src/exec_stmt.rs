@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
+use std::result;
 
 use crate::environment::Environment;
 use crate::error_reporter;
@@ -9,26 +10,25 @@ use crate::literal_value::LiteralValue;
 use crate::lox_callable::LoxCallable;
 use crate::statement::Statement;
 
+pub enum ErrorOrReturn {
+    Error(error_reporter::Error),
+    Return(LiteralValue),
+}
+
+pub type Result<T> = result::Result<T, ErrorOrReturn>;
+
 pub trait ExecuteStatement<W>
 where
     W: Write,
 {
-    fn execute(
-        &self,
-        environment: &Rc<RefCell<Environment>>,
-        output: &mut W,
-    ) -> error_reporter::Result<()>;
+    fn execute(&self, environment: &Rc<RefCell<Environment>>, output: &mut W) -> Result<()>;
 }
 
 impl<W> ExecuteStatement<W> for Statement
 where
     W: Write,
 {
-    fn execute(
-        &self,
-        environment: &Rc<RefCell<Environment>>,
-        output: &mut W,
-    ) -> error_reporter::Result<()> {
+    fn execute(&self, environment: &Rc<RefCell<Environment>>, output: &mut W) -> Result<()> {
         match self {
             Statement::Expression { expr } => {
                 expr.evaluate(environment, output)?;
@@ -40,6 +40,9 @@ where
                     (*body).clone(),
                 )),
             )?,
+            Statement::Return { expr, .. } => {
+                return Err(ErrorOrReturn::Return(expr.evaluate(environment, output)?))
+            }
             Statement::If {
                 condition,
                 then_branch,
@@ -77,5 +80,11 @@ where
             }
         }
         Ok(())
+    }
+}
+
+impl From<error_reporter::Error> for ErrorOrReturn {
+    fn from(error: error_reporter::Error) -> Self {
+        ErrorOrReturn::Error(error)
     }
 }

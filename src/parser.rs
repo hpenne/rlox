@@ -116,6 +116,10 @@ where
                 self.next_token();
                 self.print_statement()
             }
+            Some(TokenType::Return) => {
+                let keyword = self.next_token().unwrap();
+                self.return_statement(keyword)
+            }
             Some(TokenType::LeftBrace) => {
                 self.next_token();
                 Ok(Block {
@@ -182,12 +186,12 @@ where
         while_body.insert(0, self.statement()?);
         let mut statement = Statement::While {
             condition,
-            block: Box::new(Statement::Block {
+            block: Box::new(Block {
                 statements: while_body,
             }),
         };
         if let Some(initalizer) = initializer {
-            statement = Statement::Block {
+            statement = Block {
                 statements: vec![initalizer, statement],
             }
         }
@@ -216,6 +220,12 @@ where
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value")?;
         Ok(Statement::Print { expr })
+    }
+
+    fn return_statement(&mut self, keyword: Token) -> error_reporter::Result<Statement> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after value")?;
+        Ok(Statement::Return { keyword, expr })
     }
 
     fn expression_statement(&mut self) -> error_reporter::Result<Statement> {
