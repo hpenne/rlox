@@ -246,9 +246,8 @@ mod test {
             run("
                 fun foo() { print \"foo\"; }
                 print foo();
-                print \"bar\";
                 "),
-            "1\n"
+            "foo\nnil\n"
         );
     }
 }

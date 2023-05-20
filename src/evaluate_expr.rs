@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::io::Write;
 use std::rc::Rc;
 
 use crate::environment::Environment;
@@ -7,16 +8,30 @@ use crate::expr::Expr;
 use crate::literal_value::LiteralValue;
 use crate::token_type::TokenType;
 
-pub trait EvaluateExpr {
-    fn evaluate(&self, environment: &Rc<RefCell<Environment>>) -> Result<LiteralValue>;
+pub trait EvaluateExpr<W>
+where
+    W: Write,
+{
+    fn evaluate(
+        &self,
+        environment: &Rc<RefCell<Environment>>,
+        output: &mut W,
+    ) -> Result<LiteralValue>;
 }
 
-impl EvaluateExpr for Expr {
+impl<W> EvaluateExpr<W> for Expr
+where
+    W: Write,
+{
     #[allow(clippy::too_many_lines)]
-    fn evaluate(&self, environment: &Rc<RefCell<Environment>>) -> Result<LiteralValue> {
+    fn evaluate(
+        &self,
+        environment: &Rc<RefCell<Environment>>,
+        output: &mut W,
+    ) -> Result<LiteralValue> {
         match self {
             Expr::Assign { name, expression } => {
-                let value = expression.evaluate(environment)?;
+                let value = expression.evaluate(environment, output)?;
                 environment.borrow_mut().assign(name, value.clone())?;
                 Ok(value)
             }
@@ -25,8 +40,8 @@ impl EvaluateExpr for Expr {
                 operator,
                 right,
             } => {
-                let left = left.evaluate(environment)?;
-                let right = right.evaluate(environment)?;
+                let left = left.evaluate(environment, output)?;
+                let right = right.evaluate(environment, output)?;
                 match operator.token_type {
                     TokenType::Minus => Ok(LiteralValue::Number(
                         f64::try_from(left)? - f64::try_from(right)?,
@@ -83,14 +98,14 @@ impl EvaluateExpr for Expr {
                 closing_paren,
                 arguments,
             } => {
-                let callee_value = callee.evaluate(environment)?;
+                let callee_value = callee.evaluate(environment, output)?;
                 let argument_values = arguments
                     .iter()
-                    .map(|arg| arg.evaluate(environment))
+                    .map(|arg| arg.evaluate(environment, output))
                     .collect::<Result<Vec<_>>>()?;
                 if let LiteralValue::Function(func) = callee_value {
                     if func.arity() == argument_values.len() {
-                        Ok(func.call(argument_values, environment)?)
+                        Ok(func.call(argument_values, environment, output)?)
                     } else {
                         Err(Error {
                             token: Some(closing_paren.clone()),
@@ -113,18 +128,22 @@ impl EvaluateExpr for Expr {
                 operator,
                 right,
             } => {
-                let left: bool = left.evaluate(environment)?.try_into()?;
+                let left: bool = left.evaluate(environment, output)?.try_into()?;
                 match operator.token_type {
                     TokenType::Or => {
                         if left {
                             Ok(LiteralValue::Bool(true))
                         } else {
-                            Ok(LiteralValue::Bool(right.evaluate(environment)?.try_into()?))
+                            Ok(LiteralValue::Bool(
+                                right.evaluate(environment, output)?.try_into()?,
+                            ))
                         }
                     }
                     TokenType::And => {
                         if left {
-                            Ok(LiteralValue::Bool(right.evaluate(environment)?.try_into()?))
+                            Ok(LiteralValue::Bool(
+                                right.evaluate(environment, output)?.try_into()?,
+                            ))
                         } else {
                             Ok(LiteralValue::Bool(false))
                         }
@@ -132,16 +151,16 @@ impl EvaluateExpr for Expr {
                     _ => panic!("Unsupported binary operator: {}", operator.token_type),
                 }
             }
-            Expr::Grouping { expression } => expression.evaluate(environment),
+            Expr::Grouping { expression } => expression.evaluate(environment, output),
             Expr::Literal { value } => Ok(value.clone()),
             Expr::Variable { name } => environment.borrow().get(name),
             Expr::Unary { operator, right } => match operator.token_type {
                 TokenType::Bang => {
-                    let boolean_value: bool = right.evaluate(environment)?.try_into()?;
+                    let boolean_value: bool = right.evaluate(environment, output)?.try_into()?;
                     Ok(LiteralValue::Bool(!boolean_value))
                 }
                 TokenType::Minus => {
-                    let number: f64 = right.evaluate(environment)?.try_into()?;
+                    let number: f64 = right.evaluate(environment, output)?.try_into()?;
                     Ok(LiteralValue::Number(-number))
                 }
                 _ => {

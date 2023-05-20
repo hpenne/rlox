@@ -31,7 +31,7 @@ where
     ) -> error_reporter::Result<()> {
         match self {
             Statement::Expression { expr } => {
-                expr.evaluate(environment)?;
+                expr.evaluate(environment, output)?;
             }
             Statement::Function { name, params, body } => (*environment).borrow_mut().define(
                 name,
@@ -45,20 +45,20 @@ where
                 then_branch,
                 else_branch,
             } => {
-                if condition.evaluate(environment)? == LiteralValue::Bool(true) {
+                if condition.evaluate(environment, output)? == LiteralValue::Bool(true) {
                     then_branch.execute(environment, output)?;
                 } else if let Some(else_branch) = else_branch {
                     else_branch.execute(environment, output)?;
                 }
             }
             Statement::While { condition, block } => {
-                while condition.evaluate(environment)? == LiteralValue::Bool(true) {
+                while condition.evaluate(environment, output)? == LiteralValue::Bool(true) {
                     block.execute(environment, output)?;
                 }
             }
             Statement::Print { expr } => {
-                writeln!(output, "{}", expr.evaluate(environment)?)
-                    .expect("Write to output failed");
+                let value = expr.evaluate(environment, output)?;
+                writeln!(output, "{value}").expect("Write to output failed");
                 output.flush().unwrap();
             }
             Statement::Block { statements } => {
@@ -69,7 +69,7 @@ where
             }
             Statement::Var { name, initializer } => {
                 let value = if let Some(initializer) = initializer {
-                    initializer.evaluate(environment)?
+                    initializer.evaluate(environment, output)?
                 } else {
                     LiteralValue::Nil
                 };

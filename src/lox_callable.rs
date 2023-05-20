@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
-use std::io;
 use std::io::Write;
 use std::rc::Rc;
 
@@ -49,9 +48,9 @@ impl LoxCallable {
         &self,
         arguments: Vec<LiteralValue>,
         environment: &Rc<RefCell<Environment>>,
-        // output: &mut dyn Write,
+        output: &mut dyn Write,
     ) -> Result<LiteralValue> {
-        (self.func)(arguments, environment, &mut io::stdout())
+        (self.func)(arguments, environment, output)
     }
 
     pub fn arity(&self) -> usize {
