@@ -190,9 +190,9 @@ where
                 statements: while_body,
             }),
         };
-        if let Some(initalizer) = initializer {
+        if let Some(initializer) = initializer {
             statement = Block {
-                statements: vec![initalizer, statement],
+                statements: vec![initializer, statement],
             }
         }
         Ok(statement)
