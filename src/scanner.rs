@@ -27,6 +27,7 @@ where
     source: I,
     error_reporter: Rc<RefCell<ErrorReporter>>,
     line: usize,
+    count: usize,
 }
 
 impl<I> Scanner<I>
@@ -38,6 +39,7 @@ where
             source,
             error_reporter: error,
             line: 1,
+            count: 0,
         }
     }
 
@@ -61,12 +63,14 @@ where
         '\0'
     }
 
-    fn token(&self, token_type: TokenType) -> Token {
-        Token::new(token_type, String::new(), self.line)
+    fn token(&mut self, token_type: TokenType) -> Token {
+        self.count += 1;
+        Token::new(token_type, String::new(), self.line, self.count)
     }
 
-    fn token_with_lexeme(&self, token_type: TokenType, lexeme: String) -> Token {
-        Token::new(token_type, lexeme, self.line)
+    fn token_with_lexeme(&mut self, token_type: TokenType, lexeme: String) -> Token {
+        self.count += 1;
+        Token::new(token_type, lexeme, self.line, self.count)
     }
 
     fn consume_line(&mut self) {
@@ -135,7 +139,7 @@ where
         }
     }
 
-    fn reserved_word_token(&self, identifier: &str) -> Option<Token> {
+    fn reserved_word_token(&mut self, identifier: &str) -> Option<Token> {
         if let Some(token_type) = reserved_word_token_type(identifier) {
             return Some(self.token(token_type));
         }

@@ -1,17 +1,17 @@
 use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
-use std::io::Write;
 use std::rc::Rc;
 
 use crate::environment::Environment;
 use crate::error_reporter::Result;
 use crate::exec_stmt::{ErrorOrReturn, ExecuteStatement};
+use crate::interpreter::Interpreter;
 use crate::literal_value::LiteralValue;
 use crate::statement::Statement;
 use crate::token::Token;
 
 pub type LoxCallableFn =
-    dyn Fn(Vec<LiteralValue>, &Rc<RefCell<Environment>>, &mut dyn Write) -> Result<LiteralValue>;
+    dyn Fn(Vec<LiteralValue>, &Rc<RefCell<Environment>>, &mut Interpreter) -> Result<LiteralValue>;
 
 #[derive(Clone)]
 pub struct LoxCallable {
@@ -30,13 +30,13 @@ impl LoxCallable {
     pub fn from_statement(params: Vec<Token>, body: Vec<Statement>) -> Self {
         let num_arguments = params.len();
         Self {
-            func: Rc::new(move |args, env, mut output| {
+            func: Rc::new(move |args, env, interpreter| {
                 let environment = Rc::new(RefCell::new(Environment::from_parent(env)));
                 for (param, arg) in params.iter().zip(args.into_iter()) {
                     (*environment).borrow_mut().define(param, arg)?;
                 }
                 for statement in &body {
-                    match statement.execute(&environment, &mut output) {
+                    match statement.execute(&environment, interpreter) {
                         Ok(..) => {}
                         Err(ErrorOrReturn::Error(error)) => return Err(error),
                         Err(ErrorOrReturn::Return(value)) => return Ok(value),
@@ -52,9 +52,9 @@ impl LoxCallable {
         &self,
         arguments: Vec<LiteralValue>,
         environment: &Rc<RefCell<Environment>>,
-        output: &mut dyn Write,
+        interpreter: &mut Interpreter,
     ) -> Result<LiteralValue> {
-        (self.func)(arguments, environment, output)
+        (self.func)(arguments, environment, interpreter)
     }
 
     pub fn arity(&self) -> usize {

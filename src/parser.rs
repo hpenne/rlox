@@ -223,7 +223,11 @@ where
     }
 
     fn return_statement(&mut self, keyword: Token) -> error_reporter::Result<Statement> {
-        let expr = self.expression()?;
+        let expr = if self.check_token_type(TokenType::Semicolon) {
+            None
+        } else {
+            Some(self.expression()?)
+        };
         self.consume(TokenType::Semicolon, "Expected ';' after value")?;
         Ok(Statement::Return { keyword, expr })
     }

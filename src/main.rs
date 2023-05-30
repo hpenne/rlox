@@ -9,6 +9,7 @@ use crate::builtins::add_builtin_functions;
 use crate::environment::Environment;
 use crate::error_reporter::ErrorReporter;
 use crate::exec_stmt::{ErrorOrReturn, ExecuteStatement};
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::TokenScanner;
 use crate::token::Token;
@@ -19,9 +20,11 @@ mod error_reporter;
 mod evaluate_expr;
 mod exec_stmt;
 mod expr;
+mod interpreter;
 mod literal_value;
 mod lox_callable;
 mod parser;
+mod resolver;
 mod scanner;
 mod statement;
 mod token;
@@ -87,9 +90,16 @@ fn run(
 ) {
     let mut parser = Parser::new(source.chars().tokens(error.clone()), error.clone());
     let statements = parser.parse();
+    let mut interpreter = Interpreter {
+        globals: environment.clone(),
+        resolver: resolver::resolve(&statements, error),
+        output,
+    };
     if !error.borrow().has_error() {
         for statement in statements {
-            if let Err(ErrorOrReturn::Error(error)) = statement.execute(environment, output) {
+            if let Err(ErrorOrReturn::Error(error)) =
+                statement.execute(environment, &mut interpreter)
+            {
                 write!(output, "Runtime error: {}", error.message).unwrap();
                 break;
             }
@@ -236,6 +246,24 @@ mod test {
     }
 
     #[test]
+    fn while_as_for_loop() {
+        assert_eq!(
+            run("
+                var a = 0;
+                var temp;
+                var b = 1;
+                while (a < 100) {
+                    print a;
+                    temp = a;
+                    a = b;
+                    b = temp + b;
+                }
+                "),
+            "0\n1\n1\n2\n3\n5\n8\n13\n21\n34\n55\n89\n"
+        );
+    }
+
+    #[test]
     fn clock() {
         run("print clock();");
     }
@@ -258,8 +286,8 @@ mod test {
     fn fib() {
         assert_eq!(
             run("
-                fun fib(n) { 
-                    if (n <= 1) return n; 
+                fun fib(n) {
+                    if (n <= 1) return n;
                     return fib(n-2) + fib(n-1);
                 }
                 for (var i = 0; i < 20; i = i + 1) {
@@ -267,6 +295,18 @@ mod test {
                 }
             "),
             "0\n1\n1\n2\n3\n5\n8\n13\n21\n34\n55\n89\n144\n233\n377\n610\n987\n1597\n2584\n4181\n"
+        );
+    }
+
+    #[test]
+    fn simple_loop() {
+        assert_eq!(
+            run("
+                for (var i = 0; i < 10; i = i + 1) {
+                    print i;
+                }
+            "),
+            "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n"
         );
     }
 }

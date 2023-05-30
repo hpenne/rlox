@@ -15,6 +15,7 @@ pub fn add_builtin_functions(environment: &mut Environment) {
                 token_type: TokenType::Fun,
                 lexeme: "clock".to_string(),
                 line: 0,
+                count: 0,
             },
             LiteralValue::Function(LoxCallable::from_fn(
                 Rc::new(|_args, _env, _out| {

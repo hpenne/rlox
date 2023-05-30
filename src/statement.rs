@@ -13,7 +13,7 @@ pub enum Statement {
     },
     Return {
         keyword: Token,
-        expr: Expr,
+        expr: Option<Expr>,
     },
     If {
         condition: Expr,

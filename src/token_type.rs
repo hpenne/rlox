@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TokenType {
     // Single-character tokens:
     LeftParen,

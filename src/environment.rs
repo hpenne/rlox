@@ -61,4 +61,14 @@ impl Environment {
             message: format!("Undefined variable {}", name.lexeme),
         })
     }
+
+    pub fn get_at(&self, distance: usize, name: &Token) -> error_reporter::Result<LiteralValue> {
+        if distance == 0 {
+            Ok(self.get(name)?)
+        } else if let Some(enclosing) = &self.enclosing {
+            (*enclosing).borrow().get_at(distance - 1, name)
+        } else {
+            panic!("Incorrect distance!")
+        }
+    }
 }
