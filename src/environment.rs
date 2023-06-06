@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::error_reporter;
@@ -9,14 +9,14 @@ use crate::token::Token;
 
 #[derive(Default)]
 pub struct Environment {
-    values: HashMap<String, LiteralValue>,
+    values: BTreeMap<String, LiteralValue>,
     enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
     pub fn from_parent(enclosing: &Rc<RefCell<Environment>>) -> Self {
         Self {
-            values: HashMap::default(),
+            values: BTreeMap::default(),
             enclosing: Some(enclosing.clone()),
         }
     }
