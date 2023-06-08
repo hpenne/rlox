@@ -1,10 +1,11 @@
-use std::collections::HashMap;
+// use std::collections::HashMap;
 use std::ptr::null_mut;
 
 use crate::error_reporter;
 use crate::error_reporter::Error;
 use crate::literal_value::LiteralValue;
 use crate::token::Token;
+use rustc_hash::FxHashMap as HashMap;
 
 pub struct Environment {
     values: HashMap<String, LiteralValue>,
