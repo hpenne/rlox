@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
@@ -10,7 +11,7 @@ use crate::statement::Statement;
 use crate::token::Token;
 
 pub type LoxCallableFn =
-    dyn Fn(Vec<LiteralValue>, &mut Environment, &mut Interpreter) -> Result<LiteralValue>;
+    dyn Fn(Vec<LiteralValue>, &Rc<RefCell<Environment>>, &mut Interpreter) -> Result<LiteralValue>;
 
 #[derive(Clone)]
 pub struct LoxCallable {
@@ -30,22 +31,18 @@ impl LoxCallable {
         let num_arguments = params.len();
         Self {
             func: Rc::new(move |args, env, interpreter| {
-                // This is safe because we satisfy the requirement of from_parent that
-                // the parent lives longer than the environment that is created:
-                unsafe {
-                    let mut environment = Environment::from_parent(env);
-                    for (param, arg) in params.iter().zip(args.into_iter()) {
-                        environment.define(param, arg)?;
-                    }
-                    for statement in &body {
-                        match statement.execute(&mut environment, interpreter) {
-                            Ok(..) => {}
-                            Err(ErrorOrReturn::Error(error)) => return Err(error),
-                            Err(ErrorOrReturn::Return(value)) => return Ok(value),
-                        }
-                    }
-                    Ok(LiteralValue::Nil)
+                let environment = Rc::new(RefCell::new(Environment::from_parent(env)));
+                for (param, arg) in params.iter().zip(args.into_iter()) {
+                    (*environment).borrow_mut().define(param, arg)?;
                 }
+                for statement in &body {
+                    match statement.execute(&environment, interpreter) {
+                        Ok(..) => {}
+                        Err(ErrorOrReturn::Error(error)) => return Err(error),
+                        Err(ErrorOrReturn::Return(value)) => return Ok(value),
+                    }
+                }
+                Ok(LiteralValue::Nil)
             }),
             num_arguments,
         }
@@ -54,7 +51,7 @@ impl LoxCallable {
     pub fn call(
         &self,
         arguments: Vec<LiteralValue>,
-        environment: &mut Environment,
+        environment: &Rc<RefCell<Environment>>,
         interpreter: &mut Interpreter,
     ) -> Result<LiteralValue> {
         (self.func)(arguments, environment, interpreter)

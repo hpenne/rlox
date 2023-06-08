@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::environment::Environment;
 use crate::error_reporter::{Error, Result};
 use crate::expr::Expr;
@@ -9,7 +12,7 @@ use crate::token_type::TokenType;
 pub trait EvaluateExpr {
     fn evaluate(
         &self,
-        environment: &mut Environment,
+        environment: &Rc<RefCell<Environment>>,
         interpreter: &mut Interpreter,
     ) -> Result<LiteralValue>;
 }
@@ -18,13 +21,13 @@ impl EvaluateExpr for Expr {
     #[allow(clippy::too_many_lines)]
     fn evaluate(
         &self,
-        environment: &mut Environment,
+        environment: &Rc<RefCell<Environment>>,
         interpreter: &mut Interpreter,
     ) -> Result<LiteralValue> {
         match self {
             Expr::Assign { name, expression } => {
                 let value = expression.evaluate(environment, interpreter)?;
-                environment.assign(name, value.clone())?;
+                environment.borrow_mut().assign(name, value.clone())?;
                 Ok(value)
             }
             Expr::Binary {
@@ -168,14 +171,14 @@ impl EvaluateExpr for Expr {
 }
 
 fn lookup_variable(
-    environment: &mut Environment,
+    environment: &Rc<RefCell<Environment>>,
     interpreter: &Interpreter,
     name: &Token,
 ) -> Result<LiteralValue> {
     if let Some(distance) = interpreter.resolver.get(name) {
-        environment.get_at(*distance, name)
+        (**environment).borrow().get_at(*distance, name)
     } else {
-        environment.get_global(name)
+        (*interpreter.globals).borrow().get(name)
     }
 }
 

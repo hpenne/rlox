@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::result;
 
 use crate::environment::Environment;
@@ -16,16 +18,24 @@ pub enum ErrorOrReturn {
 pub type Result<T> = result::Result<T, ErrorOrReturn>;
 
 pub trait ExecuteStatement {
-    fn execute(&self, environment: &mut Environment, interpreter: &mut Interpreter) -> Result<()>;
+    fn execute(
+        &self,
+        environment: &Rc<RefCell<Environment>>,
+        interpreter: &mut Interpreter,
+    ) -> Result<()>;
 }
 
 impl ExecuteStatement for Statement {
-    fn execute(&self, environment: &mut Environment, interpreter: &mut Interpreter) -> Result<()> {
+    fn execute(
+        &self,
+        environment: &Rc<RefCell<Environment>>,
+        interpreter: &mut Interpreter,
+    ) -> Result<()> {
         match self {
             Statement::Expression { expr } => {
                 expr.evaluate(environment, interpreter)?;
             }
-            Statement::Function { name, params, body } => environment.define(
+            Statement::Function { name, params, body } => (*environment).borrow_mut().define(
                 name,
                 LiteralValue::Function(LoxCallable::from_statement(
                     params.clone(),
@@ -60,21 +70,19 @@ impl ExecuteStatement for Statement {
                 writeln!(interpreter.output, "{value}").expect("Write to output failed");
                 interpreter.output.flush().unwrap();
             }
-            Statement::Block { statements } => unsafe {
-                // This is safe because we satisfy the requirement of from_parent that
-                // the parent lives longer than the environment that is created:
-                let mut block_env = Environment::from_parent(environment);
+            Statement::Block { statements } => {
+                let block_env = Rc::new(RefCell::new(Environment::from_parent(environment)));
                 for statement in statements {
-                    statement.execute(&mut block_env, interpreter)?;
+                    statement.execute(&block_env, interpreter)?;
                 }
-            },
+            }
             Statement::Var { name, initializer } => {
                 let value = if let Some(initializer) = initializer {
                     initializer.evaluate(environment, interpreter)?
                 } else {
                     LiteralValue::Nil
                 };
-                environment.define(name, value)?;
+                (**environment).borrow_mut().define(name, value)?;
             }
         }
         Ok(())

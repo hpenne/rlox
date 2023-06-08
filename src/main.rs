@@ -45,9 +45,9 @@ fn print_help() {
     println!("Usage: rlox <script>");
 }
 
-fn create_env() -> Environment {
-    let mut environment = Environment::default();
-    add_builtin_functions(&mut environment);
+fn create_env() -> Rc<RefCell<Environment>> {
+    let environment = Rc::new(RefCell::new(Environment::default()));
+    add_builtin_functions(&mut (*environment).borrow_mut());
     environment
 }
 
@@ -84,19 +84,18 @@ fn run_file(file: &str) {
 
 fn run(
     source: &str,
-    environment: &mut Environment,
+    environment: &mut Rc<RefCell<Environment>>,
     error: &Rc<RefCell<ErrorReporter>>,
     output: &mut impl Write,
 ) {
     let mut parser = Parser::new(source.chars().tokens(error.clone()), error.clone());
     let statements = parser.parse();
     let mut interpreter = Interpreter {
+        globals: environment.clone(),
         resolver: resolver::resolve(&statements, error),
         output,
     };
     if !error.borrow().has_error() {
-        // This is safe because we satisfy the requirement of from_parent that
-        // the parent lives longer than the environment that is created:
         for statement in statements {
             if let Err(ErrorOrReturn::Error(error)) =
                 statement.execute(environment, &mut interpreter)
