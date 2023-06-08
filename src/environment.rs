@@ -1,22 +1,22 @@
 use std::cell::RefCell;
-use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::error_reporter;
 use crate::error_reporter::Error;
 use crate::literal_value::LiteralValue;
 use crate::token::Token;
+use rustc_hash::FxHashMap;
 
 #[derive(Default)]
 pub struct Environment {
-    values: BTreeMap<String, LiteralValue>,
+    values: FxHashMap<String, LiteralValue>,
     enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
     pub fn from_parent(enclosing: &Rc<RefCell<Environment>>) -> Self {
         Self {
-            values: BTreeMap::default(),
+            values: FxHashMap::default(),
             enclosing: Some(enclosing.clone()),
         }
     }
