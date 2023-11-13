@@ -1,7 +1,7 @@
 = rlox
 
 This is a Rust implementation of an interpreter for the "lox" language from the excellent book "Crafting Interpreters" by Robert Nystrom.
-The book is available online here: https://craftinginterpreters.com@
+The book is available online here: https://craftinginterpreters.com
 
 The interpreter is complete up to and including chapter 11 ("Resolving and binding"),
 but does not include classes etc. from chapter 12 onwards.
