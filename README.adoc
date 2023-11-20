@@ -5,3 +5,9 @@ The book is available online here: https://craftinginterpreters.com
 
 The interpreter is complete up to and including chapter 11 ("Resolving and binding"),
 but does not include classes etc. from chapter 12 onwards.
+
+The code was written as an exercise in both Rust and interpreters while reading the book.
+Rust enums-with-data have been used instead of the Visitor pattern, and some other details have been implemented a little differently than in the book.
+
+I have tried not to be sloppy but the code has not been optimized much,
+and there is room for improvement regarding performance (parameter passing is one such area).
